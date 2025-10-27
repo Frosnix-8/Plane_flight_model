@@ -1,0 +1,129 @@
+[gd_scene load_steps=11 format=3 uid="uid://b2gej66e63mk4"]
+
+[ext_resource type="Script" uid="uid://crobohh3y2xxx" path="res://Player/PlayerPrimaryScript.gd" id="1_4flbx"]
+[ext_resource type="Script" uid="uid://b0lm8olhrpqne" path="res://Player/ray.gd" id="2_onrkg"]
+[ext_resource type="Script" uid="uid://3fdwds102yoq" path="res://Player/g_check_ray.gd" id="2_sweqy"]
+[ext_resource type="Script" uid="uid://4tml5i76lkms" path="res://Player/ray_sub.gd" id="3_i3pqv"]
+[ext_resource type="Material" uid="uid://xmjo2mp2pv3t" path="res://debugmat.tres" id="4_hqtel"]
+[ext_resource type="Script" uid="uid://bxmkx64ervm5w" path="res://Player/playercam.gd" id="5_fhl08"]
+
+[sub_resource type="CapsuleShape3D" id="CapsuleShape3D_i3pqv"]
+radius = 0.4
+height = 1.7
+
+[sub_resource type="StandardMaterial3D" id="StandardMaterial3D_vtle1"]
+
+[sub_resource type="CapsuleMesh" id="CapsuleMesh_onrkg"]
+material = SubResource("StandardMaterial3D_vtle1")
+radius = 0.4
+height = 1.7
+
+[sub_resource type="BoxMesh" id="BoxMesh_i3pqv"]
+material = ExtResource("4_hqtel")
+size = Vector3(0.2, 0.2, 0.2)
+
+[node name="ThePlayer" type="CharacterBody3D" groups=["off_plat", "player"]]
+floor_snap_length = 0.15
+platform_on_leave = 2
+script = ExtResource("1_4flbx")
+CShader_outline_thickness_def = 5.0
+JUMP_VELOCITY = 2.5
+
+[node name="Collision" type="CollisionShape3D" parent="."]
+shape = SubResource("CapsuleShape3D_i3pqv")
+
+[node name="Meshpivot" type="Node3D" parent="."]
+
+[node name="Placeholdermesh" type="MeshInstance3D" parent="Meshpivot"]
+gi_mode = 0
+mesh = SubResource("CapsuleMesh_onrkg")
+skeleton = NodePath("../..")
+
+[node name="horirotation" type="Node3D" parent="."]
+
+[node name="Primaray" type="RayCast3D" parent="horirotation" groups=["off_plat"]]
+target_position = Vector3(0, -2, 0)
+collision_mask = 2
+script = ExtResource("2_onrkg")
+
+[node name="Scopekeep" type="Timer" parent="horirotation/Primaray"]
+wait_time = 1.2999999999999998
+one_shot = true
+
+[node name="RightRay" type="RayCast3D" parent="horirotation/Primaray"]
+target_position = Vector3(0, 0, 1.5)
+collision_mask = 2
+collide_with_areas = true
+script = ExtResource("3_i3pqv")
+
+[node name="LeftRay" type="RayCast3D" parent="horirotation/Primaray"]
+target_position = Vector3(0, 0, -1.5)
+collision_mask = 2
+collide_with_areas = true
+script = ExtResource("3_i3pqv")
+
+[node name="FrontRay" type="RayCast3D" parent="horirotation/Primaray"]
+target_position = Vector3(1.5, 0, 0)
+collision_mask = 2
+collide_with_areas = true
+script = ExtResource("3_i3pqv")
+
+[node name="BackRay" type="RayCast3D" parent="horirotation/Primaray"]
+target_position = Vector3(-1.5, 0, 0)
+collision_mask = 2
+collide_with_areas = true
+script = ExtResource("3_i3pqv")
+
+[node name="topray" type="RayCast3D" parent="horirotation/Primaray"]
+target_position = Vector3(0, 1.5, 0)
+script = ExtResource("3_i3pqv")
+
+[node name="GCheckRay" type="RayCast3D" parent="horirotation"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0.208, 0, 0.3)
+target_position = Vector3(0, -2.5, 0)
+collision_mask = 2
+script = ExtResource("2_sweqy")
+
+[node name="GcheckRay2" type="RayCast3D" parent="horirotation/GCheckRay"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -0.533376, 0, -0.3)
+target_position = Vector3(0, -2.5, 0)
+collision_mask = 2
+
+[node name="GcheckRay3" type="RayCast3D" parent="horirotation/GCheckRay"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0, -0.6)
+target_position = Vector3(0, -2.5, 0)
+collision_mask = 2
+
+[node name="vertication" type="Node3D" parent="horirotation"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 3.0376017e-05, 0.37235796, 0)
+
+[node name="Playercam" type="Camera3D" parent="horirotation/vertication"]
+transform = Transform3D(-4.371139e-08, 0, -1, 0, 1, 0, 1, 0, -4.371139e-08, 0.25433365, 0.4271003, 2.3841858e-07)
+current = true
+script = ExtResource("5_fhl08")
+
+[node name="deb" type="MeshInstance3D" parent="."]
+mesh = SubResource("BoxMesh_i3pqv")
+
+[node name="Ambient1" type="AudioStreamPlayer" parent="."]
+mix_target = 1
+playback_type = 1
+
+[node name="Ambient2" type="AudioStreamPlayer" parent="."]
+mix_target = 1
+playback_type = 1
+
+[node name="Contiming" type="Timer" parent="."]
+process_callback = 0
+wait_time = 0.2
+one_shot = true
+
+[connection signal="fail_recalibrate" from="." to="horirotation/Primaray" method="_on_character_body_3d_fail_recalibrate"]
+[connection signal="parent_lost" from="horirotation/Primaray" to="." method="_on_ray_cast_3d_parent_lost" flags=3]
+[connection signal="reparent" from="horirotation/Primaray" to="." method="_on_ray_cast_3d_reparent" flags=3]
+[connection signal="timeout" from="horirotation/Primaray/Scopekeep" to="horirotation/Primaray" method="_on_scopekeep_timeout"]
+[connection signal="potential_obj" from="horirotation/Primaray/RightRay" to="horirotation/Primaray" method="_on_right_ray_potential_obj"]
+[connection signal="potential_obj" from="horirotation/Primaray/LeftRay" to="horirotation/Primaray" method="_on_left_ray_potential_obj"]
+[connection signal="potential_obj" from="horirotation/Primaray/FrontRay" to="horirotation/Primaray" method="_on_front_ray_potential_obj"]
+[connection signal="potential_obj" from="horirotation/Primaray/BackRay" to="horirotation/Primaray" method="_on_back_ray_potential_obj"]
+[connection signal="potential_obj" from="horirotation/Primaray/topray" to="horirotation/Primaray" method="_on_topray_potential_obj"]

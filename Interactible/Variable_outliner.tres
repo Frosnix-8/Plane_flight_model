@@ -1,0 +1,15 @@
+[gd_resource type="ShaderMaterial" load_steps=3 format=3 uid="uid://q0j0rwrbioc4"]
+
+[ext_resource type="Material" uid="uid://bsan8hdyc0yo7" path="res://Interactible/Variable highlighter.tres" id="1_w3dyf"]
+[ext_resource type="Shader" uid="uid://rsq0sxp5n5oy" path="res://Interactible/otherhighlight.gdshader" id="2_qoad1"]
+
+[resource]
+render_priority = 0
+next_pass = ExtResource("1_w3dyf")
+shader = ExtResource("2_qoad1")
+shader_parameter/opacity = 1.0
+shader_parameter/step_count = 3
+shader_parameter/thickness = 3.0000000298024
+shader_parameter/edge_color = Color(0, 1, 1, 1)
+shader_parameter/fade_start = 100.0
+shader_parameter/fade_length = 200.0

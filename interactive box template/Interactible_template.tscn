@@ -1,0 +1,47 @@
+[gd_scene load_steps=8 format=3 uid="uid://caqatjh1rb45x"]
+
+[ext_resource type="Material" uid="uid://q0j0rwrbioc4" path="res://Interactible/Variable_outliner.tres" id="1_vxtiq"]
+[ext_resource type="Script" uid="uid://cq6ovj87exhq2" path="res://interactive box template/TMP_highlight_test.gd" id="2_5yvhk"]
+[ext_resource type="AudioStream" uid="uid://c4xguguraspx6" path="res://misc sounds/small_click.wav" id="3_5yvhk"]
+
+[sub_resource type="StandardMaterial3D" id="StandardMaterial3D_bt33l"]
+next_pass = ExtResource("1_vxtiq")
+albedo_color = Color(0.3855115, 0.38727853, 0.43699282, 1)
+metallic = 0.5
+roughness = 0.5
+distance_fade_min_distance = 6.0
+distance_fade_max_distance = 4.0
+
+[sub_resource type="BoxMesh" id="BoxMesh_4x42a"]
+material = SubResource("StandardMaterial3D_bt33l")
+size = Vector3(0.3, 0.3, 0.3)
+
+[sub_resource type="BoxShape3D" id="BoxShape3D_vxtiq"]
+size = Vector3(0.35, 0.35, 0.35)
+
+[sub_resource type="AudioStreamRandomizer" id="AudioStreamRandomizer_5yvhk"]
+random_pitch = 1.3
+streams_count = 1
+stream_0/stream = ExtResource("3_5yvhk")
+
+[node name="MeshInstance3D" type="MeshInstance3D"]
+instance_shader_parameters/click_color = Color(0.72156864, 0.8039216, 0.8901961, 1)
+instance_shader_parameters/highlight_color = Color(0.3762, 0.6831, 0.99, 1)
+mesh = SubResource("BoxMesh_4x42a")
+script = ExtResource("2_5yvhk")
+
+[node name="CollisionShape3D" type="Area3D" parent="."]
+disable_mode = 1
+collision_mask = 0
+
+[node name="CollisionShape3D" type="CollisionShape3D" parent="CollisionShape3D"]
+shape = SubResource("BoxShape3D_vxtiq")
+
+[node name="AudioStreamPlayer3D" type="AudioStreamPlayer3D" parent="."]
+stream = SubResource("AudioStreamRandomizer_5yvhk")
+volume_db = -10.0
+unit_size = 3.0
+attenuation_filter_cutoff_hz = 10000.0
+
+[connection signal="input_event" from="CollisionShape3D" to="." method="_input_event"]
+[connection signal="mouse_exited" from="CollisionShape3D" to="." method="on_mouse_exited"]

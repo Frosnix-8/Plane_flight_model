@@ -1,0 +1,10 @@
+[gd_resource type="ShaderMaterial" load_steps=2 format=3 uid="uid://bsan8hdyc0yo7"]
+
+[ext_resource type="Shader" uid="uid://cam8jy6t5i2x3" path="res://Interactible/Variable_highlight.gdshader" id="1_hkfua"]
+
+[resource]
+render_priority = 0
+shader = ExtResource("1_hkfua")
+shader_parameter/opacity = 0.0
+shader_parameter/highlight_color = Color(0.384, 0.694, 1, 1)
+shader_parameter/click_color = Color(0.8682216, 0.9508135, 0.9999998, 1)

@@ -1,0 +1,75 @@
+[gd_scene load_steps=12 format=3 uid="uid://cyq0kfigmqcij"]
+
+[ext_resource type="Script" uid="uid://cdmu712hotest" path="res://main/main.gd" id="1_h2yge"]
+[ext_resource type="PackedScene" uid="uid://b2gej66e63mk4" path="res://Player/player.tscn" id="2_0xm2m"]
+[ext_resource type="PackedScene" uid="uid://bv6fn3vfi4bqt" path="res://ship/ship2.tscn" id="4_1bvp3"]
+[ext_resource type="Texture2D" uid="uid://df34tyo2asd2s" path="res://icon.svg" id="4_kfbq2"]
+[ext_resource type="PackedScene" uid="uid://caqatjh1rb45x" path="res://interactive box template/Interactible_template.tscn" id="5_lquwl"]
+
+[sub_resource type="StandardMaterial3D" id="StandardMaterial3D_c651c"]
+albedo_color = Color(0.49485445, 0.4948545, 0.49485445, 1)
+albedo_texture = ExtResource("4_kfbq2")
+uv1_scale = Vector3(100, 100, 100)
+
+[sub_resource type="PlaneMesh" id="PlaneMesh_h2yge"]
+material = SubResource("StandardMaterial3D_c651c")
+size = Vector2(5000, 5000)
+
+[sub_resource type="BoxShape3D" id="BoxShape3D_kfbq2"]
+size = Vector3(5000, 1, 5000)
+
+[sub_resource type="ProceduralSkyMaterial" id="ProceduralSkyMaterial_ig7tw"]
+sun_angle_max = 17.95
+
+[sub_resource type="Sky" id="Sky_0xm2m"]
+sky_material = SubResource("ProceduralSkyMaterial_ig7tw")
+
+[sub_resource type="Environment" id="Environment_h2yge"]
+background_mode = 2
+sky = SubResource("Sky_0xm2m")
+tonemap_mode = 2
+sdfgi_cascades = 6
+volumetric_fog_albedo = Color(0.45840502, 0.45840508, 0.45840502, 1)
+
+[node name="Node3D" type="Node3D"]
+script = ExtResource("1_h2yge")
+
+[node name="CharacterBody3D" parent="." instance=ExtResource("2_0xm2m")]
+floor_snap_length = 0.03
+JUMP_VELOCITY = 7.0
+
+[node name="environment" type="Node3D" parent="."]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, -2.6315584, 0)
+
+[node name="Node3D2" type="Node3D" parent="environment"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.019640446, 7.4032307)
+
+[node name="MeshInstance3D" type="MeshInstance3D" parent="environment"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -9.654264, 0, -14.902775)
+layers = 5
+mesh = SubResource("PlaneMesh_h2yge")
+skeleton = NodePath("../..")
+
+[node name="StaticBody3D" type="StaticBody3D" parent="environment/MeshInstance3D"]
+collision_layer = 7
+
+[node name="CollisionShape3D" type="CollisionShape3D" parent="environment/MeshInstance3D/StaticBody3D"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, -0.49264526, 0)
+shape = SubResource("BoxShape3D_kfbq2")
+
+[node name="WorldEnvironment" type="WorldEnvironment" parent="environment"]
+environment = SubResource("Environment_h2yge")
+
+[node name="DirectionalLight3D" type="DirectionalLight3D" parent="environment"]
+transform = Transform3D(-0.8660253, -0.4330129, 0.2500001, 0, 0.49999994, 0.86602545, -0.50000024, 0.74999994, -0.43301257, 0, 0, 0)
+shadow_enabled = true
+
+[node name="MeshInstance3D2" parent="environment" instance=ExtResource("5_lquwl")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 2.047346, 2.7216125, -0.05445862)
+skeleton = NodePath("../..")
+
+[node name="Shipnode" parent="environment" instance=ExtResource("4_1bvp3")]
+transform = Transform3D(1, 0, 0, 0, 1.0000001, 0, 0, 0, 1.0000002, -0.91760445, 2.4604883, -6.8768406)
+
+[node name="MeshInstance3D3" parent="environment" instance=ExtResource("5_lquwl")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 5, 2.5002115, -1)
