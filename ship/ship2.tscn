@@ -298,12 +298,12 @@ script = ExtResource("1_to8rf")
 [node name="ship" type="RigidBody3D" parent="." groups=["Platform"]]
 collision_layer = 4
 collision_mask = 4
-freeze_mode = 1
 continuous_cd = true
+linear_damp_mode = 1
+angular_damp_mode = 1
 angular_damp = 0.5
 script = ExtResource("2_hgqia")
-top_Bottom_speed_multiplier = Vector2(0.7, 0.7)
-left_Right_speed_multiplier = Vector2(0.7, 0.7)
+max_atmospheric_speed = 120.0
 max_lift_speed = 60.0
 flight_assist_enabled = true
 in_atmosphere = true

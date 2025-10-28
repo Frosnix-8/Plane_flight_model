@@ -16,7 +16,7 @@ material = SubResource("StandardMaterial3D_c651c")
 size = Vector2(5000, 5000)
 
 [sub_resource type="BoxShape3D" id="BoxShape3D_kfbq2"]
-size = Vector3(5000, 1, 5000)
+size = Vector3(5000, 10, 5000)
 
 [sub_resource type="ProceduralSkyMaterial" id="ProceduralSkyMaterial_ig7tw"]
 sun_angle_max = 17.95
@@ -54,7 +54,7 @@ skeleton = NodePath("../..")
 collision_layer = 7
 
 [node name="CollisionShape3D" type="CollisionShape3D" parent="environment/MeshInstance3D/StaticBody3D"]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, -0.49264526, 0)
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, -5, 0)
 shape = SubResource("BoxShape3D_kfbq2")
 
 [node name="WorldEnvironment" type="WorldEnvironment" parent="environment"]
