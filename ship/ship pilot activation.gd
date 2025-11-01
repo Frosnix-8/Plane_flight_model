@@ -1,12 +1,12 @@
 extends MeshInstance3D
 
-signal toggle_pilot_control(Pilot: CharacterBody3D, is_current_pilot: bool)
 
 var outline : ShaderMaterial = mesh.surface_get_material(0).next_pass
 var outliner : Shader = mesh.surface_get_material(0).next_pass.shader
 var highlight : ShaderMaterial = mesh.surface_get_material(0).next_pass.next_pass
 var highlighter : Shader = mesh.surface_get_material(0).next_pass.next_pass.shader
 @onready var click_check := $CollisionShape3D
+@onready var Interior := get_node("../")
 var mouse_on_obj := false
 @export var Interact_distance := 2.9
 var outline_thickness_def := 0.0
@@ -48,10 +48,12 @@ func _input_event(_camera: Node, event: InputEvent, _event_position: Vector3, _n
 			set_instance_shader_parameter("highlight_color", highlight_color_def[1])
 			
 			if _camera == get_node("../Seating/Pilotcam"):
-				toggle_pilot_control.emit(null, true)
+				
+				Interior.pilot_toggle(null, true)
 				
 			else:
-				toggle_pilot_control.emit(_camera.cam_player, false)
+				Interior.pilot_toggle(_camera.cam_player, false)
+
 			$AudioStreamPlayer3D.play()
 			
 			

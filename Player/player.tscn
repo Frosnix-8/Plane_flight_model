@@ -106,12 +106,11 @@ script = ExtResource("5_fhl08")
 mesh = SubResource("BoxMesh_i3pqv")
 
 [node name="Ambient1" type="AudioStreamPlayer" parent="."]
-mix_target = 1
-playback_type = 1
+process_thread_group = 2
+process_thread_group_order = 0
+process_thread_messages = 0
 
 [node name="Ambient2" type="AudioStreamPlayer" parent="."]
-mix_target = 1
-playback_type = 1
 
 [node name="Contiming" type="Timer" parent="."]
 process_callback = 0

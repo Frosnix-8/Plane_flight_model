@@ -1,18 +1,17 @@
 extends AnimatableBody3D
-
-signal declaration(declared: AnimatableBody3D)
-##Distance at which point all children of node are disabled.
+##Distance at which point all children of node are disabled for performance.
 @export var LODistance :=  50.0
 
-var The_Captain: RigidBody3D
+@onready var The_Captain: RigidBody3D = get_node("../ship")
 var is_disabled := false
+
 var ambience := load("res://ship/Audio/space ambience 3.ogg")
-var ambience_vol := -10.5
+var ambience_vol := 3
+
 var previous_pos : Vector3
 var previous_rot : Basis
 func _ready() -> void:
 	process_physics_priority = 1
-	declaration.emit(self)
 	previous_pos = The_Captain.global_position
 	previous_rot = The_Captain.global_basis
 func Captain_announcement(Captain: RigidBody3D) -> void:

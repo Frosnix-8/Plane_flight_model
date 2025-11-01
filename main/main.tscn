@@ -9,7 +9,7 @@
 [sub_resource type="StandardMaterial3D" id="StandardMaterial3D_c651c"]
 albedo_color = Color(0.49485445, 0.4948545, 0.49485445, 1)
 albedo_texture = ExtResource("4_kfbq2")
-uv1_scale = Vector3(100, 100, 100)
+uv1_scale = Vector3(400, 400, 400)
 
 [sub_resource type="PlaneMesh" id="PlaneMesh_h2yge"]
 material = SubResource("StandardMaterial3D_c651c")
@@ -68,8 +68,13 @@ shadow_enabled = true
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 2.047346, 2.7216125, -0.05445862)
 skeleton = NodePath("../..")
 
-[node name="Shipnode" parent="environment" instance=ExtResource("4_1bvp3")]
-transform = Transform3D(1, 0, 0, 0, 1.0000001, 0, 0, 0, 1.0000002, -0.91760445, 2.4604883, -6.8768406)
+[node name="main ship" parent="environment" instance=ExtResource("4_1bvp3")]
+transform = Transform3D(1, 0, 0, 0, 1.0000001, 0, 0, 0, 1.0000002, -0.91760445, 2.4604883, -16.460808)
 
 [node name="MeshInstance3D3" parent="environment" instance=ExtResource("5_lquwl")]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 5, 2.5002115, -1)
+
+[node name="second ship" parent="environment" instance=ExtResource("4_1bvp3")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 3.5529413, 16.162785)
+
+[editable path="environment/main ship"]

@@ -1,16 +1,14 @@
 extends AnimatableBody3D
 
-signal declaration(declared: AnimatableBody3D)
-signal pilot_activation(is_disabling: bool)
 ##Distance at which point all children of node are disabled.
 
 @export var LODistance :=  50.0
 var is_disabled := false
 var fcount := 0
 #Parent info.
-var The_Captain: RigidBody3D
+@onready var The_Captain: RigidBody3D = get_node("../ship")
 ##Whether the ship is being piloted.
-var piloted : bool
+var piloted := false
 @onready var Pilot_Seat := $Seating
 @onready var Pilot_cam := $Seating/Pilotcam
 var Current_Pilot : CharacterBody3D
@@ -27,10 +25,9 @@ var previous_rot : Basis
 ##Ambience retrieved by player when they reparent to this region.
 var ambience := load("res://ship/Audio/space ambience 3.ogg")
 ##Ambience volume retrieved by player when reparenting to this node.
-var ambience_vol := 0.0
+var ambience_vol := 10
 
 func _ready() -> void:
-	declaration.emit(self)
 	previous_pos = The_Captain.global_position
 	previous_rot = The_Captain.global_basis
 	process_physics_priority = 1
@@ -57,7 +54,7 @@ func _physics_process(delta: float) -> void:
 	#else:
 		#global_transform = The_Captain.global_transform
 	#Your code here
-	$deb.position = (The_Captain.linear_velocity * 0.01)
+	$deb.position = (The_Captain.linear_velocity * 0.01 + Vector3(4,0,0))
 	
 	if fcount % 15 == 0:
 		section_activation()
@@ -89,23 +86,24 @@ func section_activation(force: bool = false, force_disable:= false):
 		print("reenabled for performance")
 
 
-func _on_pilot_toggle(Pilot: CharacterBody3D, is_current_Pilot : bool = false) -> void:
+func pilot_toggle(Pilot: CharacterBody3D, is_current_Pilot : bool = false) -> void:
 	
 	if piloted or is_current_Pilot:
 		if pilot_tween:
 			pilot_tween.kill()
-		pilot_activation.emit(true)
-		pilot_activation.disconnect(Current_Pilot._on_pilot_mode_activation)
+		Current_Pilot.pilot_activation(true)
+		The_Captain.pilot_activation(true)
 		Current_Pilot.reparent(Pilot_parent, true)
 		piloted = false
 		The_Captain.piloted = false
 		Current_Pilot.cam.make_current()
+		Current_Pilot = null
 	else:
 		Current_Pilot = Pilot 
 		piloted = true
 		The_Captain.piloted = true
-		pilot_activation.connect(Pilot._on_pilot_mode_activation)
-		pilot_activation.emit(false)
+		Pilot.pilot_activation(false)
+		The_Captain.pilot_activation(false)
 		
 		if pilot_tween:
 			pilot_tween.kill()

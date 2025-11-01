@@ -314,7 +314,6 @@ func _input(event: InputEvent) -> void:
 		Context_shader_toggle()
 ##handles if the target_object is lost due to a time-out
 func _on_ray_cast_3d_parent_lost() -> void:
-	print("lost parent! retrying...")
 		
 	if in_atmosphere:
 		target_object_swap(get_tree().root.get_child(0))
@@ -333,8 +332,6 @@ func _on_ray_cast_3d_reparent(guest: Node3D) -> void:
 		fail_recalibrate.emit()
 		return
 	
-	#target_object_swap(guest)
-	##Replacing with queue
 	PENDING_TARGET_OBJECT = guest
 	
 	#recalibrate = true
@@ -348,30 +345,29 @@ func raycast_resize():
 			reparent_casts[x].target_position = reparent_casts_defs[x]
 ##checks for ship compatibility when swapping target_object. requires arg1
 func target_object_swap(new_target: Node3D):
-	print("initializing swap.")
 	var _velocity : Vector3
 	##check if the new and old parent are related. If so, same ship.
 	if new_target.is_in_group("Ship"):
 		if new_target.The_Captain == target_object_parent:
 			print("new target is same ship!")
-			get_ambience( true)
+			call_deferred("get_ambience", true)
 			target_object.call("child_announcement", self, false)
 			target_object = new_target
 			target_object.call("child_announcement", self, true)
-			get_ambience( false)
+			call_deferred("get_ambience", false)
 			return
 	
 	if target_object:
 		if target_type == targetstates.ship:
 			_velocity = target_object_ship_disembark()
+		else: 
+			call_deferred("get_ambience", true)
 	###
 	target_object = new_target
 	###
 	if target_object.is_in_group("Ship"):
 		target_object_ship_board()
-		print("BOARDING~!!!!")
 	else:
-		print("target object is misc.")
 		target_object_misc_enter()
 	velocity += _velocity
 
@@ -392,7 +388,7 @@ func target_object_ship_disembark() -> Vector3:
 	target_object_parent.top_level = false
 	#target_object_parent.position = ship_world_position - world.global_position
 	
-	get_ambience(true)
+	call_deferred("get_ambience", true)
 	target_type = targetstates.none
 	target_object_parent = null
 	
@@ -407,13 +403,12 @@ func target_object_ship_disembark() -> Vector3:
 
 	world.position -= world_compensation
 	global_position = Vector3.ZERO
-	print("compensated world position by ", -world_compensation)
 
 	return ship_velocity
 ##DO NOT TOUCH IT
 func target_object_ship_board() -> void:
 	transition_frame = true
-	print("ship boarding initiated.")
+
 	target_object_parent = target_object.The_Captain
 	target_type = targetstates.ship
 	
@@ -424,17 +419,17 @@ func target_object_ship_board() -> void:
 	#global_position = player_global_relative_position
 	target_object_parent.call("child_call", self, true, world)
 	target_object.call("child_announcement", self, true)
-	get_ambience(false)
+	call_deferred("get_ambience", false)
 	raycast_resize()
 	static_player_moving_world_adjust(Vector3.ZERO)
 	pass
 ##DO NOT TOUCH IT...
 func target_object_misc_enter() -> void:
-	print("intitating misc object entry...")
+
 	target_type = targetstates.misc
 	target_object_parent = null
 	
-	get_ambience(false)
+	call_deferred("get_ambience", false)
 	raycast_resize()
 	
 	#static_player_moving_world_adjust(Vector3.ZERO)
@@ -475,7 +470,7 @@ func audio_fade_in(Player: AudioStreamPlayer,ambience_vol:= 0.0, fade_duration:=
 	if Audio_Tweens.has(Player):
 		Audio_Tweens[Player].kill()
 	
-	Player.volume_db = -80.0
+	Player.set_deferred("volume_db", -80.0)
 	Player.play(ambience_progress)
 	#print("beginning audio fade-in, time is: ", fade_duration)
 	var tween := create_tween()
@@ -486,15 +481,16 @@ func audio_fade_in(Player: AudioStreamPlayer,ambience_vol:= 0.0, fade_duration:=
 func audio_fade_out(Player: AudioStreamPlayer, fade_duration:= 3.0):
 	if Audio_Tweens.has(Player):
 		Audio_Tweens[Player].kill()
-	
-	var tween := create_tween()
+	var tween :Tween= create_tween()
+	print("fading out...")
 	#print("beginning audio fade-out, time is: ", fade_duration)
 	ambience_progress = Player.get_playback_position()
 	tween.set_ease(Tween.EASE_OUT)
 	tween.tween_property(Player, "volume_db", -80.0, fade_duration)
 	tween.tween_callback(func():
-		Player.stop()
+		Player.stop
 		Player.stream = null
+		print("completed")
 		)
 ##Handles fading in and out of context mode
 func Context_shader_toggle():
@@ -518,10 +514,8 @@ func Context_shader_toggle():
 		ShaderTween.parallel()
 		ShaderTween.tween_property(Context_shader, "shader_parameter/thickness", 0, 0.3)
 ##When starting to pilot a ship, this variable puts you in the mode.
-func _on_pilot_mode_activation(is_disabling: bool):
+func pilot_activation(is_disabling: bool):
 	if is_disabling:
-
-		
 		is_active = true
 		is_pilot = false
 		return
