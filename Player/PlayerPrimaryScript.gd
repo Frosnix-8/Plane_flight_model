@@ -4,6 +4,7 @@ signal fail_recalibrate
 #depracated: signal parent_call(is_depracated: bool, host: CharacterBody3D)
 enum spacestates {grounded, airborne, spaceborne}
 enum targetstates {none, ship, misc}
+enum keyedrotaxes {pitch, roll, yaw}
 ##The mother of all (normal) movement
 @onready var world : Node3D = get_node("../environment")
 ##Parent
@@ -13,7 +14,6 @@ enum targetstates {none, ship, misc}
 $horirotation/Primaray/LeftRay, $horirotation/Primaray/RightRay, $horirotation/Primaray/topray]
 @onready var reparent_casts_defs : PackedVector3Array
 @onready var GCheckRay := $horirotation/GCheckRay
-
 @onready var meshpivot := $Meshpivot
 @onready var pivot := $horirotation
 @onready var omnipivot := $horirotation/vertication
@@ -75,6 +75,13 @@ var is_in_context_menu := false
 @onready var contiming := $Contiming
 
 var is_pilot := false
+##radius in "meters" that a mouse can traverse at most while piloting a ship or maybe something else. 
+##Initially on ship node, moved for convenience and modularity.
+@export var max_mouse_distance : float = 1 
+##Which rotation axe is not handled on the mouse?
+@export var prefered_non_mouse_axe := keyedrotaxes.roll
+##distance relative to max mouse distance at which no movement is recognized.
+@export var mouse_deadzone := 0.06
 var is_active := true
 var was_active := true
 ##I think you know what this is

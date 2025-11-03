@@ -33,9 +33,10 @@ var boost := false
 @export var boost_time : float = 10
 ##Time, in seconds, that the ship needs to fully recharge the boost.
 @export var boost_cooldown : float = 12
-##Speed multiplier for the boost per axis. NOTE: boost mechanic is currently as follows: for as long as the boost button is applied,
+##Accel multiplier for the boost per axis. NOTE: boost mechanic is currently as follows: for as long as the boost button is applied,
 ##max speed and acceleration, maybe rotation too are amplified.
 @export var boost_multiplier : Vector3 = Vector3(2.0, 2.4, 2.0)
+##Speed multiplier for in-atmosphere boost... NOTE: might change.
 @export var atmos_boost_speed_multiplier : float = 1.8
 ##experimental: boost torque multiplier. 
 @export var boost_torque_multiplier := Vector3.ONE * 1.5
@@ -46,9 +47,10 @@ var speed_limit := 100.0
 
 var mouse_relative_position := Vector2.ZERO
 ##Max distance in pixels from center screen that the flight cursor can be moved to reach max steer.
-@export var max_mouse_distance := 500 
-
-
+var current_max_mouse_distance := 0.5 
+##Received from the player when piloting, 0 is pitch, 1 is roll, 2 is yaw. Magic numbers because idk how to transfer enums.
+var current_prefered_non_mouse_axe : int
+var current_mouse_deadzone : float
 ##GFORCE
 var previous_velocity := Vector3.ZERO
 var G_forces := Vector3.ZERO
@@ -94,7 +96,7 @@ func _physics_process(delta: float) -> void:
 		linear_damp = 0.0
 		
 		#print(direction)
-		var rotation_torque : Vector3 = keyed_rotation()
+		var rotation_torque : Vector3 = ship_rotation()
 		
 		
 		calculate_g_force(delta)
@@ -111,6 +113,7 @@ func _physics_process(delta: float) -> void:
 		linear_damp = 0.2
 		return
 	
+	previous_velocity = linear_velocity
 	
 		
 func _integrate_forces(state: PhysicsDirectBodyState3D) -> void:
@@ -126,9 +129,30 @@ func _integrate_forces(state: PhysicsDirectBodyState3D) -> void:
 	#TODO: Implement atmospheric flight system.
 	
 ##Calculates torque for each axis based off key input. for simplicity relative torque is identical on each axis: each axis rotates at the same speed.
-func keyed_rotation() -> Vector3:
-	var target_rotation := Input.get_vector("pitch up", "pitch down", "yaw left", "yaw right")
-	var rolltation := Input.get_axis("roll left","roll right")
+func ship_rotation() -> Vector3:
+	#separated roll because I forgot and i'm too lazy.
+	var target_rotation := Vector2.ZERO
+	var rolltation := 0.0
+	
+	var normalized_mouse_position : Vector2 = mouse_relative_position / current_max_mouse_distance
+	print(normalized_mouse_position.length())
+	if (normalized_mouse_position.length() > current_mouse_deadzone):
+		match current_prefered_non_mouse_axe:
+			#0 exists just in case.
+			0:
+				target_rotation.y = normalized_mouse_position.x
+				rolltation = normalized_mouse_position.y
+			1:
+				target_rotation.x = -normalized_mouse_position.y
+				target_rotation.y = normalized_mouse_position.x
+			2: 
+				target_rotation.x = normalized_mouse_position.y
+				rolltation = normalized_mouse_position.x
+	
+	target_rotation = clamp(target_rotation + Input.get_vector("pitch up", "pitch down", "yaw left", "yaw right"), -Vector2.ONE, Vector2.ONE)
+	rolltation = clamp(rolltation + Input.get_axis("roll left","roll right"), -1.0, 1.0)
+	
+	
 	if !target_rotation and !rolltation:
 	
 		return Vector3.ZERO
@@ -174,7 +198,6 @@ func calculate_g_force(delta: float):
 		av += G_forces.length()
 		#print(av / (previous_G_forces.size() + 1))
 	
-	previous_velocity = linear_velocity
 	
 	
 func calculate_linear_velocity():
@@ -252,8 +275,6 @@ func thrust_flight_assist() -> Vector3:
 	
 	return -possible_correction
 
-
-
 func _input(_event: InputEvent) -> void:
 	if !piloted:
 		return
@@ -268,16 +289,30 @@ func _input(_event: InputEvent) -> void:
 		else:
 			print("flight assist off.")
 		
+func _unhandled_input(event: InputEvent) -> void:
+	if !piloted:
+		return
+	if event is InputEventMouseMotion:
+		#since the mouse isn't always in the center when playing, I opted for a virtual mouse instead.
+		mouse_relative_position += event.relative / 500
+		if mouse_relative_position.length() > current_max_mouse_distance:
+			mouse_relative_position = mouse_relative_position.normalized() * current_max_mouse_distance
+		#print(mouse_relative_position)
+	
 
 func pilot_activation(is_disabling: bool) -> void:
+	#or just if is activating.
 	if !is_disabling:
-		set_physics_process(true)
 		set_process_unhandled_input(true)
 		set_process_input(true)
+		current_prefered_non_mouse_axe = Interior.Current_Pilot.prefered_non_mouse_axe
+		current_mouse_deadzone = Interior.Current_Pilot.mouse_deadzone
+		current_max_mouse_distance = Interior.Current_Pilot.max_mouse_distance
+		#print(prefered_non_mouse_axe)
 		print("activated rigidbody flight mode")
-		#gravity_scale = 0
+
 	if is_disabling:
-		#gravity_scale = 1
+
 		set_process_unhandled_input(false)
 		set_process_input(false)
 		print("deactivated rigidbody flight mode")
@@ -340,14 +375,7 @@ func TEMP_audio():
 			if phase >= 1.0:
 				phase -= 1.0
 
-func _unhandled_input(event: InputEvent) -> void:
-	if !piloted:
-		return
-	if event is InputEventMouseMotion:
-		mouse_relative_position += event.relative
-		if mouse_relative_position.length() > max_mouse_distance:
-			mouse_relative_position = mouse_relative_position.normalized() * max_mouse_distance
-		print(mouse_relative_position)
+
 
 func _exit_tree() -> void:
 	if piloted:

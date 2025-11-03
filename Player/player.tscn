@@ -28,6 +28,7 @@ platform_on_leave = 2
 script = ExtResource("1_4flbx")
 CShader_outline_thickness_def = 5.0
 JUMP_VELOCITY = 2.5
+prefered_non_mouse_axe = 2
 
 [node name="Collision" type="CollisionShape3D" parent="."]
 shape = SubResource("CapsuleShape3D_i3pqv")

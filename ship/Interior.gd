@@ -35,6 +35,7 @@ func captain_announcement(Captain: RigidBody3D) -> void:
 	The_Captain = Captain
 	piloted = The_Captain.piloted
 func _physics_process(delta: float) -> void:
+	
 	fcount += 1
 	##minimizes lag when aligning with parent WHEN NOT FRAME OF REFERENCE.
 	if !is_target or true:
@@ -54,7 +55,7 @@ func _physics_process(delta: float) -> void:
 	#else:
 		#global_transform = The_Captain.global_transform
 	#Your code here
-	$deb.position = (The_Captain.linear_velocity * 0.01 + Vector3(4,0,0))
+	$deb.position = (The_Captain.linear_velocity * 0.01 )
 	
 	if fcount % 15 == 0:
 		section_activation()

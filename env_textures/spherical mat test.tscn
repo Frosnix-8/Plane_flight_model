@@ -1,0 +1,32 @@
+[gd_scene load_steps=5 format=3 uid="uid://xm0vc14774in"]
+
+[ext_resource type="Shader" uid="uid://rsq0sxp5n5oy" path="res://Interactible/otherhighlight.gdshader" id="1_mjeio"]
+
+[sub_resource type="ShaderMaterial" id="ShaderMaterial_o43r3"]
+render_priority = 0
+shader = ExtResource("1_mjeio")
+shader_parameter/opacity = 1.0
+shader_parameter/step_count = 3
+shader_parameter/thickness = 14.0000001937156
+shader_parameter/edge_color = Color(0, 0.45527, 0.9106032, 1)
+shader_parameter/fade_start = 100.0
+shader_parameter/fade_length = 200.0
+
+[sub_resource type="StandardMaterial3D" id="StandardMaterial3D_suk4f"]
+next_pass = SubResource("ShaderMaterial_o43r3")
+
+[sub_resource type="SphereMesh" id="SphereMesh_id8au"]
+material = SubResource("StandardMaterial3D_suk4f")
+
+[node name="Node3D" type="Node3D"]
+
+[node name="MeshInstance3D" type="MeshInstance3D" parent="."]
+mesh = SubResource("SphereMesh_id8au")
+
+[node name="MeshInstance3D2" type="MeshInstance3D" parent="."]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -1.2645017, 0, 0)
+mesh = SubResource("SphereMesh_id8au")
+
+[node name="MeshInstance3D3" type="MeshInstance3D" parent="."]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 1.2156069, 0, 0)
+mesh = SubResource("SphereMesh_id8au")
