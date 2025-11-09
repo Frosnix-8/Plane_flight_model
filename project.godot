@@ -11,7 +11,7 @@ config_version=5
 [application]
 
 config/name="Chiild swap"
-run/main_scene="uid://cyq0kfigmqcij"
+run/main_scene="uid://wgsuytc6u8v6"
 config/features=PackedStringArray("4.5", "Forward Plus")
 config/icon="res://icon.svg"
 

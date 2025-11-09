@@ -353,6 +353,8 @@ func _input(_event: InputEvent) -> void:
 func _unhandled_input(event: InputEvent) -> void:
 	if !piloted:
 		return
+	elif Interior.Current_Pilot.is_in_context_menu:
+		return
 	if event is InputEventMouseMotion:
 		#since the mouse isn't always in the center when playing, I opted for a virtual mouse instead.
 		mouse_relative_position += event.relative / 500

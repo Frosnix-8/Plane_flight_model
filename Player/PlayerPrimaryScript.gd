@@ -18,6 +18,7 @@ $horirotation/Primaray/LeftRay, $horirotation/Primaray/RightRay, $horirotation/P
 @onready var pivot := $horirotation
 @onready var omnipivot := $horirotation/vertication
 @onready var cam := $horirotation/vertication/Playercam
+@onready var cam_original_position : Vector3 = $horirotation/vertication/Playercam.position
 
 ##children that must be vertically transformed for height-sensitive actions.
 @onready var height_adjustables : Array
@@ -541,9 +542,9 @@ func pilot_activation(is_disabling: bool):
 	if is_disabling:
 		is_active = true
 		is_pilot = false
-		set_process_unhandled_input(false)
+		set_process_unhandled_input(true)
 		return
 	is_active = false
 	is_pilot = true
-	set_process_unhandled_input(true)
+	set_process_unhandled_input(false)
 	height_adjust(false)
