@@ -396,6 +396,7 @@ shape = SubResource("ConcavePolygonShape3D_bev6k")
 
 [node name="deb" type="MeshInstance3D" parent="interior"]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 1.6773679, 0, 0)
+visible = false
 mesh = SubResource("BoxMesh_38pk5")
 
 [node name="Enter_seat" type="MeshInstance3D" parent="interior"]
@@ -423,9 +424,12 @@ attenuation_filter_cutoff_hz = 10000.0
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 1.5725353, -1.297082, 0)
 
 [node name="Pilotcam" type="Camera3D" parent="interior/Seating"]
-transform = Transform3D(-4.371139e-08, 0, -1, 0, 1, 0, 1, 0, -4.371139e-08, 0.72, 1.2925489, 0)
+transform = Transform3D(-4.371139e-08, 0, -1, 0, 1, 0, 1, 0, -4.371139e-08, 0.72, 1.297, 0)
 fov = 90.0
 near = 0.2
+
+[node name="PilotCamNode" type="Node3D" parent="interior/Seating"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0.65976906, 1.297082, 0)
 
 [node name="HUD" type="Node3D" parent="interior"]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 4.0783043, 0, 0)

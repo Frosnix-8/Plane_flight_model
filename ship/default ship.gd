@@ -34,9 +34,10 @@ const G_CONSTANT := 6.6743
 @export var in_atmosphere := false
 ##Drag coefficient of ship at 1 atmosphere.
 @export var atmospheric_drag := 0.1
-##NOTE: I don't know how inertia works so away it goes for now.
+#NOTE: I don't know how inertia works so away it goes for now.
 #@export var Per_axis_rotation_inertia := Vector3()
-##FLIGHT VARIABLES
+
+#FLIGHT VARIABLES
 
 var thrust_gravity_offset : Vector3
 
@@ -151,7 +152,7 @@ func _integrate_forces(state: PhysicsDirectBodyState3D) -> void:
 #TODO: add mouse based rotation
 
 
-
+##Calculates how much force is required to fully negate gravity.
 func calculate_gravity_offset(_delta: float) -> void:
 	##NOTE: removed delta
 	thrust_gravity_offset = mass * -get_gravity()
@@ -167,9 +168,12 @@ func calculate_max_speed() -> void:
 	else:
 		speed_limit = max_speed
 
+##Calculates "drag", as in how fast the ship will shed velocity. NOTE: this is not direction dependent.
 func calculate_drag() -> float:
+	
 	return 0.0
 
+##Computes g_forces based off the ship's current velocity (TODO and gravity? I forgot.)
 func calculate_g_force(delta: float):
 	
 	var acceleration :Vector3 = (linear_velocity - previous_velocity) / delta
@@ -185,7 +189,7 @@ func calculate_g_force(delta: float):
 		#print(av / (previous_G_forces.size() + 1))
 	
 	
-	
+##Calculate linear acceleration based off of input and other factors.
 func calculate_linear_velocity():
 	var direction := Vector3(Input.get_axis("fly back","fly forward"),
 		Input.get_axis("fly down","fly up"),
@@ -308,6 +312,7 @@ func calculate_ship_rotation() -> Vector3:
 	
 	return torque
 	
+##Calculates axial flight assist required to stop all transient rotations.
 func rotation_flight_assist() -> Vector3:
 	var angular_normalized: Vector3 = basis.inverse() * (angular_velocity) * inertia * 0.0001
 	var possible_correction : Vector3
@@ -315,7 +320,8 @@ func rotation_flight_assist() -> Vector3:
 		possible_correction[x] = clamp(-angular_normalized[x], -1 , 1)
 	return possible_correction
 	
-
+##Calculates linear flight assist variables to return to target movement speed while removing lateral velocity. NOTE: target speed not implemented.
+##flight assist will for now, only set the player back to standstill.
 func thrust_flight_assist() -> Vector3:
 	var corrected_linear_velocity : Vector3= basis.inverse() * (linear_velocity) * mass
 
@@ -353,7 +359,8 @@ func _unhandled_input(event: InputEvent) -> void:
 		if mouse_relative_position.length() > current_max_mouse_distance:
 			mouse_relative_position = mouse_relative_position.normalized() * current_max_mouse_distance
 		#print(mouse_relative_position)
-	
+
+##sheds mouse position to slowly push the cursor towards the center at speeds set by the pilot.
 func flight_mouse_depreciation(delta: float):
 	if current_is_relative_mouse == 0.0:
 		return
@@ -366,7 +373,7 @@ func flight_mouse_depreciation(delta: float):
 		
 
 
-
+##Activates pilot and (re)assigns player specific settings.
 func pilot_activation(is_disabling: bool) -> void:
 	reset_mouse()
 	#or just if is activating.
@@ -387,16 +394,7 @@ func pilot_activation(is_disabling: bool) -> void:
 		set_process_input(false)
 		print("deactivated rigidbody flight mode")
 
-func _on_interior_declaration(declared: AnimatableBody3D) -> void:
-	Interior = declared
-	#print("assigned interior")
-
-func _on_exterior_declaration(declared: AnimatableBody3D) -> void:
-	
-	Exterior = declared
-	#print("assigned exterior")
-	
-##Called by the player.
+##Called by the player when reparenting.
 func child_call(_Child: CharacterBody3D, _is_target: bool, World: Node3D) -> void:
 	
 	if _is_target:
@@ -418,6 +416,7 @@ func child_call(_Child: CharacterBody3D, _is_target: bool, World: Node3D) -> voi
 var frequ : float
 var phase := 0.0
 var audio_stop := false
+##until more advanced sound systems are added, creates procedural sound to represent the ships' velocity.
 func TEMP_audio():
 	while true:
 		audiomut.lock()
@@ -454,6 +453,6 @@ func _exit_tree() -> void:
 	audio_stop = true
 	audiomut.unlock()
 	audiothread.wait_to_finish()
-
+##What do you think this does
 func reset_mouse():
 	mouse_relative_position = Vector2.ZERO

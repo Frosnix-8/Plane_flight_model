@@ -52,6 +52,7 @@ var current_height := 1.7
 ##This variant queues the target object before it can be swapped.
 var PENDING_TARGET_OBJECT : Node3D
 ##Target node that the player will rotate, experience gravity, move, and see relative to.
+##If unaware, "reparent" is to reorient and stay relative to another "parent's" frame of reference. This is key to moving on a moving craft.
 var target_object: Node3D
 var target_object_parent: Node3D
 var target_type := targetstates.none
@@ -64,10 +65,10 @@ var recalibrate_pivot_correction := true
 var current_gravity := 9.8
 var current_gravity_dir := Vector3.DOWN
 
-##NOTE: Depracated
+##NOTE: Depracated. Check compatibility before removing.
 var plat_jumped := false
 var plat_relative_pos: Vector3
-
+##For some "skydiving" stuff
 var time_airborne := 0
 var frame_count := 0
 
@@ -77,7 +78,7 @@ var frame_count := 0
 var is_in_context_menu := false
 @onready var contiming := $Contiming
 
-##PILOT VARIABLES
+#PILOT VARIABLES
 
 var is_pilot := false
 ##radius in "meters" that a mouse can traverse at most while piloting a ship or maybe something else. 
@@ -92,7 +93,7 @@ var is_pilot := false
 ##percentage of flight mouse position that depreciates each second.
 @export var relative_flight_mouse := 0.1
 
-
+##Piloting, driving? Turn this on to prevent the player from moving.
 var is_active := true
 var was_active := true
 ##I think you know what this is
@@ -213,6 +214,7 @@ func up_dir_calibrate() -> void:
 	else:
 		current_gravity_dir = Vector3.DOWN
 		up_direction = Vector3.UP
+		
 ##Handles reparenting orientation
 func reparent_recalibrate(delta: float):
 	plat_jumped = false
@@ -235,6 +237,7 @@ func reparent_recalibrate(delta: float):
 		recalibrate = false
 		recalibrate_progress = 0.0
 		recalibrate_pivot_correction = true
+	
 ##handles (airborne TODO) and spaceborne movement
 func atmos_movement(delta: float):
 	var direction : Vector3
@@ -508,7 +511,7 @@ func audio_fade_out(Player: AudioStreamPlayer, fade_duration:= 3.0):
 	tween.set_ease(Tween.EASE_OUT)
 	tween.tween_property(Player, "volume_db", -80.0, fade_duration)
 	tween.tween_callback(func():
-		Player.stop
+		Player.stop()
 		Player.stream = null
 		print("completed")
 		)
@@ -538,8 +541,9 @@ func pilot_activation(is_disabling: bool):
 	if is_disabling:
 		is_active = true
 		is_pilot = false
+		set_process_unhandled_input(false)
 		return
 	is_active = false
 	is_pilot = true
-
+	set_process_unhandled_input(true)
 	height_adjust(false)

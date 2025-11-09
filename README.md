@@ -1,15 +1,7 @@
 
-This is my first Godot project!
-As you may expect I'm not well versed in gitstuff. So expect this repo to be *ahem*... not very interesting.
-Likewise if you're here it's because I think you'd find this cool project, so let me explain what it is.
+Large aircraft navigation prototype working on making a system where you can fly super fast and walk inside while doing so. it's going well right now, but it's hard.
 
-**The Large aircraft navigation prototype**
-is a project i'm working on to (simply put) be able to fly ships very fast and walk in them while flying very fast.
+Here is some info you maybe want to have:
+move like any game, press F to interact. move regularly in aircraft, use mouse to move. Press Z to toggle flight assist. use a,d e,f and space, shift to adjust lateral plane movement (or forward, backward). for the moment.
 
-
-I died 28 times trying to work up to this point.
-
-
-Anyway, since I don't know what to do, here's an SVG of the godot logo.
-
-![icon](https://github.com/user-attachments/assets/f80ac355-ade6-43c9-9f82-0992a72eb75e)
+for the moment I am alone.

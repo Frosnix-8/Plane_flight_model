@@ -86,6 +86,3 @@ func shader_tween_method(target_tween: Tween, property: String, from, to, durati
 		return
 	else:
 		target_tween.tween_property(shader, property, to, duration)
-
-func camera_ajust():
-	pass

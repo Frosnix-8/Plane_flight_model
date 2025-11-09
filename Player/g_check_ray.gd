@@ -2,7 +2,7 @@ extends RayCast3D
 @export var scan_dist := 4
 @onready var G1 := $GcheckRay2
 @onready var G2 := $GcheckRay3
-# Called when the node enters the scene tree for the first time.
+
 func ground_check(dir: Vector3, target: Node3D) -> bool:
 	target_position = (dir * scan_dist)
 	G1.target_position = target_position

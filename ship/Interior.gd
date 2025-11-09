@@ -11,7 +11,9 @@ var fcount := 0
 var piloted := false
 @onready var Pilot_Seat := $Seating
 @onready var Pilot_cam := $Seating/Pilotcam
+@onready var Pilot_campos := $Seating/PilotCamNode
 var Current_Pilot : CharacterBody3D
+var Current_Pilot_Cam : Camera3D
 var Pilot_parent : Node3D
 var pilot_tween : Tween
 
@@ -36,6 +38,10 @@ func captain_announcement(Captain: RigidBody3D) -> void:
 	piloted = The_Captain.piloted
 func _physics_process(delta: float) -> void:
 	
+	if piloted:
+		Current_Pilot_Cam.global_position = Pilot_campos.global_position
+		#Current_Pilot_Cam.global_rotation = Pilot_campos.global_rotation - Vector3(0,deg_to_rad(90),0)
+	#
 	fcount += 1
 	##minimizes lag when aligning with parent WHEN NOT FRAME OF REFERENCE.
 	if !is_target or true:
@@ -60,7 +66,6 @@ func _physics_process(delta: float) -> void:
 	if fcount % 15 == 0:
 		section_activation()
 	
-
 func child_announcement(_Child: CharacterBody3D, _is_target = true):
 	if !is_target:
 		Child = null
@@ -86,7 +91,7 @@ func section_activation(force: bool = false, force_disable:= false):
 		is_disabled = false
 		print("reenabled for performance")
 
-
+##When called, swaps between piloted and not piloted. handles the rigibody ships' pilot mode as well.
 func pilot_toggle(Pilot: CharacterBody3D, is_current_Pilot : bool = false) -> void:
 	
 	if piloted or is_current_Pilot:
@@ -97,21 +102,21 @@ func pilot_toggle(Pilot: CharacterBody3D, is_current_Pilot : bool = false) -> vo
 		Current_Pilot.reparent(Pilot_parent, true)
 		piloted = false
 		The_Captain.piloted = false
-		Current_Pilot.cam.make_current()
 		Current_Pilot = null
+		Current_Pilot_Cam = null
 	else:
 		Current_Pilot = Pilot 
 		piloted = true
 		The_Captain.piloted = true
 		Pilot.pilot_activation(false)
 		The_Captain.pilot_activation(false)
-		
+		Current_Pilot_Cam = Pilot.cam
 		if pilot_tween:
 			pilot_tween.kill()
 		pilot_tween = create_tween()
-		pilot_tween.tween_property(Pilot, "global_position", Pilot_Seat.global_position, 0.5)
-		pilot_tween.parallel()
-		pilot_tween.tween_property(Pilot, "global_rotation", global_rotation, 0.3)
+		pilot_tween.tween_property(Pilot, "global_transform", Pilot_Seat.global_transform, 0.5)
+		#pilot_tween.parallel()
+		#pilot_tween.tween_property(Pilot, "global_rotation", global_rotation, 0.3)
 		pilot_tween.parallel()
 		pilot_tween.tween_property(Pilot.omnipivot, "rotation", Vector3.ZERO, 0.3)
 		pilot_tween.parallel()
@@ -120,7 +125,6 @@ func pilot_toggle(Pilot: CharacterBody3D, is_current_Pilot : bool = false) -> vo
 			#Pilot_cam.global_position = Pilot.cam.global_position
 			Pilot_parent = Pilot.get_parent()
 			Pilot.reparent(self, true) 
-			Pilot_cam.make_current()
 			Pilot_cam.rotation = Vector3(0,deg_to_rad(-90),0)
 		)
 		
