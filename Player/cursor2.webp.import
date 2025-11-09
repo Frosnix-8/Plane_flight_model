@@ -2,8 +2,8 @@
 
 importer="texture"
 type="CompressedTexture2D"
-uid="uid://ct67k2we6g41g"
-path.s3tc="res://.godot/imported/Cursor thingy.webp-d1425bcba691aca0607d53bfbfa75b32.s3tc.ctex"
+uid="uid://bu7kowsx0voys"
+path.s3tc="res://.godot/imported/cursor2.webp-9ebb62600ad0caa77e6451432ed1a823.s3tc.ctex"
 metadata={
 "imported_formats": ["s3tc_bptc"],
 "vram_texture": true
@@ -11,8 +11,8 @@ metadata={
 
 [deps]
 
-source_file="res://Player/Cursor thingy.webp"
-dest_files=["res://.godot/imported/Cursor thingy.webp-d1425bcba691aca0607d53bfbfa75b32.s3tc.ctex"]
+source_file="res://Player/cursor2.webp"
+dest_files=["res://.godot/imported/cursor2.webp-9ebb62600ad0caa77e6451432ed1a823.s3tc.ctex"]
 
 [params]
 

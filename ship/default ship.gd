@@ -6,6 +6,15 @@ extends RigidBody3D
 @export var forward_Backward_speed_multiplier := Vector2(1.3,0.8)
 @export var top_Bottom_speed_multiplier := Vector2(1,1)
 @export var left_Right_speed_multiplier := Vector2(0.7,0.7)
+
+##max angular speed in degrees through regular torque application; 
+@export var max_degree_axial_speed := Vector3(90,200,50)
+##max axial speed in radians.
+var max_axial_speed : Vector3
+##Unlike max axial speed in voids, the actual limit varies on speed. NOTE: Currently implementing drag.
+@export var max_degree_atmospheric_axial_speed := Vector3.ZERO
+##atmospheric axial speed limit in radians.
+var max_atmospheric_axial_speed : Vector3
 ##For convenience holds the biggest values of the three above.
 var xyz_multiplier_length_array : Array
 ##The usual max speed of the ship. I'm mixed between making ships go ludicrously fast or not.
@@ -19,9 +28,12 @@ var xyz_multiplier_length_array : Array
 ##Defines how strong thrusters are globally. This allows speed to be independent of mass.
 const GLOBAL_STRENGTH_MULTIPLIER := 100.0/4.0
 const G_FORCE := 9.8
+const G_CONSTANT := 6.6743
 
 @export var flight_assist_enabled := false
 @export var in_atmosphere := false
+##Drag coefficient of ship at 1 atmosphere.
+@export var atmospheric_drag := 0.1
 ##NOTE: I don't know how inertia works so away it goes for now.
 #@export var Per_axis_rotation_inertia := Vector3()
 ##FLIGHT VARIABLES
@@ -51,6 +63,8 @@ var current_max_mouse_distance := 0.5
 ##Received from the player when piloting, 0 is pitch, 1 is roll, 2 is yaw. Magic numbers because idk how to transfer enums.
 var current_prefered_non_mouse_axe : int
 var current_mouse_deadzone : float
+var current_flight_mouse_sensitivity : float
+var current_is_relative_mouse : float
 ##GFORCE
 var previous_velocity := Vector3.ZERO
 var G_forces := Vector3.ZERO
@@ -78,9 +92,13 @@ var frametime := 0
 
 func _ready() -> void:
 	
+	
 	audiothread.start(TEMP_audio,Thread.PRIORITY_NORMAL)
 	process_priority = 4
 
+	for x : int in range(3):
+		max_axial_speed[x] = deg_to_rad(max_degree_axial_speed[x])
+		max_atmospheric_axial_speed[x] = deg_to_rad(max_degree_atmospheric_axial_speed[x])
 	for x : Vector2 in [forward_Backward_speed_multiplier, top_Bottom_speed_multiplier, left_Right_speed_multiplier]:
 		xyz_multiplier_length_array.append(x.length())
 
@@ -96,8 +114,8 @@ func _physics_process(delta: float) -> void:
 		linear_damp = 0.0
 		
 		#print(direction)
-		var rotation_torque : Vector3 = ship_rotation()
-		
+		var rotation_torque : Vector3 = calculate_ship_rotation()
+		rotation_flight_assist()
 		
 		calculate_g_force(delta)
 		apply_torque(basis* rotation_torque)
@@ -114,7 +132,7 @@ func _physics_process(delta: float) -> void:
 		return
 	
 	previous_velocity = linear_velocity
-	
+	flight_mouse_depreciation(delta)
 		
 func _integrate_forces(state: PhysicsDirectBodyState3D) -> void:
 	if is_target:
@@ -122,48 +140,13 @@ func _integrate_forces(state: PhysicsDirectBodyState3D) -> void:
 		# Move world based on velocity
 		Child_World.global_position -= state.linear_velocity * state.step
 		state.transform.origin = prev_pos
-	for x : AnimatableBody3D in [Interior, Exterior]:
-		x.transform = state.transform
+	#for x : AnimatableBody3D in [Interior, Exterior]:
+		#x.transform = state.transform
 	
 	
 	#TODO: Implement atmospheric flight system.
 	
-##Calculates torque for each axis based off key input. for simplicity relative torque is identical on each axis: each axis rotates at the same speed.
-func ship_rotation() -> Vector3:
-	#separated roll because I forgot and i'm too lazy.
-	var target_rotation := Vector2.ZERO
-	var rolltation := 0.0
-	
-	var normalized_mouse_position : Vector2 = mouse_relative_position / current_max_mouse_distance
-	print(normalized_mouse_position.length())
-	if (normalized_mouse_position.length() > current_mouse_deadzone):
-		match current_prefered_non_mouse_axe:
-			#0 exists just in case.
-			0:
-				target_rotation.y = normalized_mouse_position.x
-				rolltation = normalized_mouse_position.y
-			1:
-				target_rotation.x = -normalized_mouse_position.y
-				target_rotation.y = normalized_mouse_position.x
-			2: 
-				target_rotation.x = normalized_mouse_position.y
-				rolltation = normalized_mouse_position.x
-	
-	target_rotation = clamp(target_rotation + Input.get_vector("pitch up", "pitch down", "yaw left", "yaw right"), -Vector2.ONE, Vector2.ONE)
-	rolltation = clamp(rolltation + Input.get_axis("roll left","roll right"), -1.0, 1.0)
-	
-	
-	if !target_rotation and !rolltation:
-	
-		return Vector3.ZERO
-	inertia = PhysicsServer3D.body_get_direct_state(get_rid()).inverse_inertia.inverse()
-	# Apply torque directly (rotational force)
-	var torque = Vector3(
-		rolltation * inertia.x,
-		-target_rotation.y * inertia.y,
-		target_rotation.x * inertia.z
-	)
-	return torque
+
 	
 #TODO: add mouse based rotation
 
@@ -183,6 +166,9 @@ func calculate_max_speed() -> void:
 		speed_limit= max_regular_speed
 	else:
 		speed_limit = max_speed
+
+func calculate_drag() -> float:
+	return 0.0
 
 func calculate_g_force(delta: float):
 	
@@ -232,6 +218,7 @@ func calculate_linear_velocity():
 	var final_velocity : Vector3 = velocity * mass* GLOBAL_STRENGTH_MULTIPLIER
 	if flight_assist_enabled:
 		var flight_assist := thrust_flight_assist()
+		
 		for x in range(3):
 			if !direction[x]:
 				final_velocity[x] = flight_assist[x] * (boost_multiplier[x] * int(boost) + int(!boost))
@@ -258,11 +245,79 @@ func calculate_linear_velocity():
 	apply_central_force(basis * final_velocity)
 	#print(basis.inverse() * linear_velocity)
 
-func rotation_flight_assist():
-	pass
+##Calculates torque for each axis based off key input. for simplicity relative torque is identical on each axis: each axis rotates at the same speed.
+func calculate_ship_rotation() -> Vector3:
+	inertia = PhysicsServer3D.body_get_direct_state(get_rid()).inverse_inertia.inverse()
+	var corrected_angular := basis.inverse() * angular_velocity
+	#separated roll because I forgot and i'm too lazy.
+	var target_rotation := Vector2.ZERO
+	var rolltation := 0.0
+	var torque :=  Vector3.ZERO
+	var normalized_mouse_position : Vector2 = mouse_relative_position / current_max_mouse_distance
+	#print(normalized_mouse_position.length())
+	
+	if (normalized_mouse_position.length() > current_mouse_deadzone):
+		match current_prefered_non_mouse_axe:
+			#0 exists just in case.
+			0:
+				target_rotation.y = normalized_mouse_position.x
+				rolltation = normalized_mouse_position.y
+			1:
+				target_rotation.x = -normalized_mouse_position.y
+				target_rotation.y = normalized_mouse_position.x
+			2: 
+				target_rotation.x = -normalized_mouse_position.y
+				rolltation = normalized_mouse_position.x
+	
+	target_rotation = clamp(target_rotation + Input.get_vector("pitch up", "pitch down", "yaw left", "yaw right"), -Vector2.ONE, Vector2.ONE)
+	rolltation = clamp(rolltation + Input.get_axis("roll left","roll right"), -1.0, 1.0)
+	
+	
+	if !target_rotation and !rolltation:
+			pass
+	elif !flight_assist_enabled:
+		
+		
+		# Apply torque directly (rotational force)
+		torque = Vector3(
+			rolltation * inertia.x * int(abs(corrected_angular.x) < max_axial_speed.x or sign(corrected_angular.x) != sign(rolltation)),
+			-target_rotation.y * inertia.y * int(abs(corrected_angular.y) < max_axial_speed.y or sign(corrected_angular.y) != sign(-target_rotation.y)),
+			target_rotation.x * inertia.z * int(abs(corrected_angular.z) < max_axial_speed.z or sign(corrected_angular.z) != sign(target_rotation.x))
+			)
+	
+	else:
+		var rot_input : Array = [rolltation, -target_rotation.y, target_rotation.x]
+		for x:int in range(3):
+			#1: if going in opposite direction of current rotation, put all force to change direction. otherwise limit based off input distance.
+
+			if sign(corrected_angular[x]) != sign(rot_input[x]):
+				torque[x] = -sign(corrected_angular[x]) * inertia[x]
+			elif abs(corrected_angular[x]) < max_axial_speed[x] * abs(rot_input[x]):
+				torque[x] = rot_input[x] * inertia[x]
+			else:
+				torque[x] = 0
+		
+		
+		
+		
+		var axial_flight_assist := rotation_flight_assist()
+		for x in range(3):
+			if torque[x] == 0:
+				torque[x] = axial_flight_assist[x] * inertia[x]
+
+	
+	return torque
+	
+func rotation_flight_assist() -> Vector3:
+	var angular_normalized: Vector3 = basis.inverse() * (angular_velocity) * inertia * 0.0001
+	var possible_correction : Vector3
+	for x in range(3):
+		possible_correction[x] = clamp(-angular_normalized[x], -1 , 1)
+	return possible_correction
+	
 
 func thrust_flight_assist() -> Vector3:
-	var corrected_linear_velocity : Vector3= basis.inverse() * (linear_velocity)
+	var corrected_linear_velocity : Vector3= basis.inverse() * (linear_velocity) * mass
 
 	var possible_correction : Vector3
 	possible_correction.x = clamp(corrected_linear_velocity.x, -mass*GLOBAL_STRENGTH_MULTIPLIER*forward_Backward_speed_multiplier.y,
@@ -271,8 +326,8 @@ func thrust_flight_assist() -> Vector3:
 	mass*GLOBAL_STRENGTH_MULTIPLIER*top_Bottom_speed_multiplier.x)
 	possible_correction.z = clamp(corrected_linear_velocity.z, -mass*GLOBAL_STRENGTH_MULTIPLIER*left_Right_speed_multiplier.y,
 	mass*GLOBAL_STRENGTH_MULTIPLIER*left_Right_speed_multiplier.x)
-
 	
+	#print(-possible_correction)
 	return -possible_correction
 
 func _input(_event: InputEvent) -> void:
@@ -299,8 +354,21 @@ func _unhandled_input(event: InputEvent) -> void:
 			mouse_relative_position = mouse_relative_position.normalized() * current_max_mouse_distance
 		#print(mouse_relative_position)
 	
+func flight_mouse_depreciation(delta: float):
+	if current_is_relative_mouse == 0.0:
+		return
+	var reduction := current_max_mouse_distance * current_is_relative_mouse * delta
+	
+	if mouse_relative_position.length() < reduction:
+		mouse_relative_position = Vector2.ZERO
+	else:
+		mouse_relative_position -= mouse_relative_position.normalized() * reduction
+		
+
+
 
 func pilot_activation(is_disabling: bool) -> void:
+	reset_mouse()
 	#or just if is activating.
 	if !is_disabling:
 		set_process_unhandled_input(true)
@@ -308,6 +376,8 @@ func pilot_activation(is_disabling: bool) -> void:
 		current_prefered_non_mouse_axe = Interior.Current_Pilot.prefered_non_mouse_axe
 		current_mouse_deadzone = Interior.Current_Pilot.mouse_deadzone
 		current_max_mouse_distance = Interior.Current_Pilot.max_mouse_distance
+		current_flight_mouse_sensitivity = Interior.Current_Pilot.flight_mouse_sensitivity
+		current_is_relative_mouse = Interior.Current_Pilot.relative_flight_mouse
 		#print(prefered_non_mouse_axe)
 		print("activated rigidbody flight mode")
 
@@ -328,6 +398,7 @@ func _on_exterior_declaration(declared: AnimatableBody3D) -> void:
 	
 ##Called by the player.
 func child_call(_Child: CharacterBody3D, _is_target: bool, World: Node3D) -> void:
+	
 	if _is_target:
 		prev_pos = global_position
 		is_target = true
@@ -375,12 +446,14 @@ func TEMP_audio():
 			if phase >= 1.0:
 				phase -= 1.0
 
-
-
 func _exit_tree() -> void:
+	
 	if piloted:
 		pilot_activation(true)
 	audiomut.lock()
 	audio_stop = true
 	audiomut.unlock()
 	audiothread.wait_to_finish()
+
+func reset_mouse():
+	mouse_relative_position = Vector2.ZERO

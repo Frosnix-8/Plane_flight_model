@@ -28,7 +28,7 @@ platform_on_leave = 2
 script = ExtResource("1_4flbx")
 CShader_outline_thickness_def = 5.0
 JUMP_VELOCITY = 2.5
-prefered_non_mouse_axe = 2
+relative_flight_mouse = 0.0
 
 [node name="Collision" type="CollisionShape3D" parent="."]
 shape = SubResource("CapsuleShape3D_i3pqv")
@@ -107,9 +107,6 @@ script = ExtResource("5_fhl08")
 mesh = SubResource("BoxMesh_i3pqv")
 
 [node name="Ambient1" type="AudioStreamPlayer" parent="."]
-process_thread_group = 2
-process_thread_group_order = 0
-process_thread_messages = 0
 
 [node name="Ambient2" type="AudioStreamPlayer" parent="."]
 

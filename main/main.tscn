@@ -74,7 +74,4 @@ transform = Transform3D(1, 0, 0, 0, 1.0000001, 0, 0, 0, 1.0000002, -0.91760445, 
 [node name="MeshInstance3D3" parent="environment" instance=ExtResource("5_lquwl")]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 5, 2.5002115, -1)
 
-[node name="second ship" parent="environment" instance=ExtResource("4_1bvp3")]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 3.5529413, 16.162785)
-
 [editable path="environment/main ship"]

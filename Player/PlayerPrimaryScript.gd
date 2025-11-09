@@ -40,6 +40,7 @@ var ambience_progress := 0.0
 @export var ACCEL := 15.0
 @export var JUMP_VELOCITY := 4.5
 @export var HEIGHT := 1.7
+@export var SENSITIVITY := 0.001
 var player_radius := 0.4
 @export var atmos_density := 1.0
 ##Whether I should keep this or fully replace with spacestate is subject to debate.
@@ -52,7 +53,7 @@ var current_height := 1.7
 var PENDING_TARGET_OBJECT : Node3D
 ##Target node that the player will rotate, experience gravity, move, and see relative to.
 var target_object: Node3D
-var target_object_parent
+var target_object_parent: Node3D
 var target_type := targetstates.none
 var first_target_relative_position : Vector3
 var transition_frame := false
@@ -69,10 +70,14 @@ var plat_relative_pos: Vector3
 
 var time_airborne := 0
 var frame_count := 0
+
+
 ##the context menu is a system to allow seamless interaction with various objects in the environment. 
 ##This boolean enables and disables it. Uses the context shader.
 var is_in_context_menu := false
 @onready var contiming := $Contiming
+
+##PILOT VARIABLES
 
 var is_pilot := false
 ##radius in "meters" that a mouse can traverse at most while piloting a ship or maybe something else. 
@@ -82,6 +87,12 @@ var is_pilot := false
 @export var prefered_non_mouse_axe := keyedrotaxes.roll
 ##distance relative to max mouse distance at which no movement is recognized.
 @export var mouse_deadzone := 0.06
+##sensitivity when using flight controls.
+@export var flight_mouse_sensitivity := 1.0
+##percentage of flight mouse position that depreciates each second.
+@export var relative_flight_mouse := 0.1
+
+
 var is_active := true
 var was_active := true
 ##I think you know what this is
@@ -292,14 +303,14 @@ func _unhandled_input(event: InputEvent) -> void:
 	if event is InputEventMouseMotion:
 		if !is_pilot:
 			if !is_in_context_menu and Input.mouse_mode == Input.MOUSE_MODE_CAPTURED:
-				pivot.rotation.y -= event.relative.x * 0.001
-				omnipivot.rotation.z -= event.relative.y * 0.001
+				pivot.rotation.y -= event.relative.x * SENSITIVITY
+				omnipivot.rotation.z -= event.relative.y * SENSITIVITY
 				omnipivot.rotation.z = clamp(omnipivot.rotation.z,-PI * 0.35, PI * 0.35)
 			elif is_in_context_menu:
 				if !contiming.is_stopped():
 					return
-				pivot.rotation.y = lerp(pivot.rotation.y,pivot.rotation.y - event.relative.x * 0.001, 0.1)
-				omnipivot.rotation.z = lerp(omnipivot.rotation.z, omnipivot.rotation.z - event.relative.y * 0.001, 0.1)
+				pivot.rotation.y = lerp(pivot.rotation.y,pivot.rotation.y - event.relative.x * SENSITIVITY, 0.1)
+				omnipivot.rotation.z = lerp(omnipivot.rotation.z, omnipivot.rotation.z - event.relative.y * SENSITIVITY, 0.1)
 				omnipivot.rotation.z = clamp(omnipivot.rotation.z,-PI * 0.35, PI * 0.35)
 	if event is InputEventMouseButton and !is_in_context_menu:
 		Input.mouse_mode = Input.MOUSE_MODE_CAPTURED
@@ -319,6 +330,8 @@ func _input(event: InputEvent) -> void:
 		is_in_context_menu = false
 		Input.mouse_mode = (Input.MOUSE_MODE_CAPTURED)
 		Context_shader_toggle()
+		if is_pilot:
+			target_object_parent.call_deferred("reset_mouse")
 ##handles if the target_object is lost due to a time-out
 func _on_ray_cast_3d_parent_lost() -> void:
 		
