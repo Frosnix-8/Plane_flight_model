@@ -104,6 +104,7 @@ current = true
 script = ExtResource("5_fhl08")
 
 [node name="deb" type="MeshInstance3D" parent="."]
+visible = false
 mesh = SubResource("BoxMesh_i3pqv")
 
 [node name="Ambient1" type="AudioStreamPlayer" parent="."]

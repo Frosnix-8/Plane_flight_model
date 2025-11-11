@@ -40,7 +40,7 @@ JUMP_VELOCITY = 7.0
 max_mouse_distance = 0.5
 
 [node name="environment" type="Node3D" parent="."]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, -2.6315584, 0)
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, -0.31683207, 0)
 
 [node name="Node3D2" type="Node3D" parent="environment"]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.019640446, 7.4032307)

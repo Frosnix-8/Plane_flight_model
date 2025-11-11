@@ -5,6 +5,9 @@ signal fail_recalibrate
 enum spacestates {grounded, airborne, spaceborne}
 enum targetstates {none, ship, misc}
 enum keyedrotaxes {pitch, roll, yaw}
+enum speedpreset {very_slow, slow, medium, quick, fast, very_fast, binary}#1.0, 5.0, 10.0, 12.5, 33.34, 50.0, 100.0
+const increments :Array = [1.0, 5.0,10.0,12.5, 33.34, 50.0, 100.0]
+#const assist_throttle_increment : Dictionary = {"1": 1.0, "5": 5.0, "10": 10.0, "12.5": 12.5, "1/3": 33.34, "50": 50.0, "Binary": 100.0}
 ##The mother of all (normal) movement
 @onready var world : Node3D = get_node("../environment")
 ##Parent
@@ -26,6 +29,7 @@ $horirotation/Primaray/LeftRay, $horirotation/Primaray/RightRay, $horirotation/P
 ##ALERT: TEMPORARY; ALL LOGIC INCLUDING THIS MUST BE REMOVED WHEN IMPLEMENTING PROPER RIGGED CHARACTERS
 @onready var TEMP_MESH_CAPSULE := $Meshpivot/Placeholdermesh
 ##Global context shader.
+@export_group("shaders")
 @export var CShader_outline_thickness_def := 10.0
 var Context_shader : ShaderMaterial = load("res://Interactible/Variable_outliner.tres")
 var ShaderTween : Tween
@@ -36,17 +40,19 @@ var ShaderTween : Tween
 ##global audio interpolation tweener repository?
 var Audio_Tweens : Dictionary = {}
 var ambience_progress := 0.0
-
+@export_group("generic character settings")
 @export var  SPEED := 5.0
 @export var ACCEL := 15.0
 @export var JUMP_VELOCITY := 4.5
 @export var HEIGHT := 1.7
-@export var SENSITIVITY := 0.001
+
 var player_radius := 0.4
 @export var atmos_density := 1.0
 ##Whether I should keep this or fully replace with spacestate is subject to debate.
 @export var in_atmosphere := true
 @export var spacestate = spacestates.grounded
+@export_group("mouse settings")
+@export var SENSITIVITY := 0.001
 
 var current_height := 1.7
 ##Apparently, the reparent logic needs to be done before move and slide. otherwise it can cause unnecessary teleporting. 
@@ -65,7 +71,6 @@ var recalibrate_pivot_correction := true
 
 var current_gravity := 9.8
 var current_gravity_dir := Vector3.DOWN
-
 ##NOTE: Depracated. Check compatibility before removing.
 var plat_jumped := false
 var plat_relative_pos: Vector3
@@ -84,6 +89,7 @@ var is_in_context_menu := false
 var is_pilot := false
 ##radius in "meters" that a mouse can traverse at most while piloting a ship or maybe something else. 
 ##Initially on ship node, moved for convenience and modularity.
+@export_subgroup("ship mouse parameters")
 @export var max_mouse_distance : float = 1 
 ##Which rotation axe is not handled on the mouse?
 @export var prefered_non_mouse_axe := keyedrotaxes.roll
@@ -93,10 +99,15 @@ var is_pilot := false
 @export var flight_mouse_sensitivity := 1.0
 ##percentage of flight mouse position that depreciates each second.
 @export var relative_flight_mouse := 0.1
+##How fast throttle should increment. this is of course internally switched for keyboard or mouse. NOTE: don't use this for ships
+@export var assist_throttle_increment_setting := speedpreset.quick
+##throttle increment speed in float. Use for ship settings.
+@onready var assist_throttle_increment : float = increments[assist_throttle_increment_setting]
 
 ##Piloting, driving? Turn this on to prevent the player from moving.
 var is_active := true
 var was_active := true
+
 ##I think you know what this is
 func _ready() -> void:
 	process_physics_priority = 0
@@ -171,6 +182,7 @@ func _physics_process(delta: float) -> void:
 	if is_on_floor():
 		time_airborne = 0
 		spacestate = spacestates.grounded
+	#gravity and detecting if the player has been airborne for more than 120 frames
 	if !is_on_floor() and in_atmosphere:
 		time_airborne += 1
 		if target_object:
@@ -187,7 +199,7 @@ func _physics_process(delta: float) -> void:
 			velocity += get_gravity() * delta
 		if time_airborne > 120 and target_type != targetstates.ship:
 			spacestate = spacestates.airborne
-	
+	##pre move and slide. it will always be equal to zero, but for good measure i prefer still memorizing it.
 	var pre_move_and_slide_position : Vector3 = global_position
 
 
@@ -201,9 +213,6 @@ func _physics_process(delta: float) -> void:
 		static_player_moving_world_adjust(pre_move_and_slide_position)
 	apply_floor_snap()
 
-		
-	$deb.position = velocity / 4
-	
 ##calibrates up_direction and 'current_gravity_dir' relative to 'target_object'. defaults if 'target_object' is null.
 ##TODO: maybe if I implement planets, perhaps include some more extra?
 func up_dir_calibrate() -> void:
