@@ -1,5 +1,11 @@
 extends RigidBody3D
 
+#a couple notes about my coding style. 
+#1: when something will be reused, turn it into a function
+#2: when a calculation will be reused, such as var.length(), especially complex math, turn it into a variable first so you only call memory.
+#3: functions are grouped into "themes", that is in the sense that they have similar jobs or work together.
+
+
 @onready var Exterior : Node3D = get_node("../exterior")
 @onready var Interior : Node3D = get_node("../interior")
 @onready var Capcap = get_parent()
@@ -28,8 +34,10 @@ var max_atmospheric_axial_speed :Vector3
 @export_group("speed limits")
 ##The usual max speed of the ship. I'm mixed between making ships go ludicrously fast or not.
 @export var max_regular_speed : float = 600
-##The max atmospheric speed.
-@export var max_atmospheric_speed : float = 300
+##The max usual atmospheric speed.
+@export var max_atmospheric_regular_speed : float = 300
+##The max boosted atmospheric speed.
+@export var max_atmospheric_speed : float = 450
 ##The absolute highest the ship can achieve at any given moment.
 @export var max_speed : float = 1200
 ##At this speed, lift force allows the ship to not use its vertical thrusters in an environment of 1 atmosphere. Varies linearly.
@@ -42,8 +50,18 @@ const G_CONSTANT := 6.6743
 ##GFORCE
 var previous_velocity := Vector3.ZERO
 var G_forces := Vector3.ZERO
-
+@export_group("G_forces")
+##Max G's the ship is allowed to turn at 1 atmosphere. scales logarithmicaly
+@export var max_atmospheric_G_tolerance : float = 10.0
+##Max G's the ship can tolerate briefly. This may as well be the below variable but why not.
+@export var max_atmospheric_G_tolerance_instant : float = 15.0
+##Max G's the ship can tolerate at 1 atmosphere.
+@export var max_atmospheric_G_absolute : float = 20.0
+##Max G's the ship can endure before any critical error entails.
+@export var max_G_absolute : float = 30.0
+var crash_G : float = 50.0
 @export_group("misc.")
+##ALERT: depracated, remove when possible.
 @export var in_atmosphere := false
 ##Drag coefficient of ship at 1 atmosphere.
 @export_group("aerodynamic parameters")
@@ -52,8 +70,8 @@ var G_forces := Vector3.ZERO
 @export var atmospheric_density := 1.0
 ##Lift surface of strength of the ship relative to mass.
 @export var atmospheric_lift : float = 50.0
-#NOTE: I don't know how inertia works so away it goes for now.
-#@export var Per_axis_rotation_inertia := Vector3()
+
+
 
 #FLIGHT VARIABLES
 
@@ -138,7 +156,7 @@ func _physics_process(delta: float) -> void:
 	#print(angular_velocity)
 	#print("Piloting: ", self.name, " | Interior.Current_Pilot = ", Interior.Current_Pilot)a
 	if atmospheric_density:
-		apply_central_force(thrust_gravity_offset * clamp((basis.inverse() * linear_velocity).x * atmospheric_density/max_lift_speed, 0, 1))
+		#apply_central_force(thrust_gravity_offset * clamp((basis.inverse() * linear_velocity).x * atmospheric_density/max_lift_speed, 0, 1))
 		calculate_atmospheric_lift()
 	frametime += 1
 	#print(Interior.Current_Pilot, " ",self)
@@ -150,21 +168,21 @@ func _physics_process(delta: float) -> void:
 		
 		calculate_g_force(delta)
 		apply_torque(basis* rotation_torque)
+		#print(rotation_torque)
 		
-
 		calculate_ship_linear_velocity()
 		if frametime % 3 == 0:
 			call_deferred("calculate_max_speed")
 			call_deferred("calculate_gravity_offset", delta)
 			call_deferred("calculate_atmospheric_density")
-			
+		flight_mouse_depreciation(delta)
 		#print("lift strength is at: ", clamp(linear_velocity.length()/max_lift_speed, 0, 1) * 100, "%")
 	else:
 		linear_damp = 0.2
 		return
 	
 	previous_velocity = linear_velocity
-	flight_mouse_depreciation(delta)
+	
 		
 func _integrate_forces(state: PhysicsDirectBodyState3D) -> void:
 	if is_target:
@@ -188,94 +206,93 @@ func calculate_gravity_offset(_delta: float) -> void:
 
 ##Calculates max speed based off all possible conditions mentioned earlier.
 func calculate_max_speed() -> void:
+	var _max_regular_speed : float = lerp(max_regular_speed,max_atmospheric_regular_speed, atmospheric_density)
+	var _max_speed : float = lerp(max_speed, max_atmospheric_speed, atmospheric_density) 
+	if boost:
+		speed_limit = _max_speed
+		return
+	speed_limit = _max_regular_speed
 	
-	var _boost_multiplier := int(boost) * atmos_boost_speed_multiplier + int(!boost)
-	if in_atmosphere:
-		speed_limit= max_atmospheric_speed * _boost_multiplier
-	elif !in_atmosphere and !boost:
-		speed_limit= max_regular_speed
-	else:
-		speed_limit = max_speed
-
 ##Calculates "drag", as in how fast the ship will shed velocity. NOTE: this is not direction dependent.
-func calculate_drag() -> float:
+func calculate_drag() -> void:
 	
-	return 0.0
+	return 
 ##Calculates atmospheric density in atmospheres at any given moment.
 func calculate_atmospheric_density() -> void:
 	##TODO: complete this.
 	atmospheric_density = 1.0
 ##For atmospheric flight, calculates centripetal force.
 
+
+
 ##For atmospheric flight, calculates centripetal force.
 func calculate_atmospheric_lift() -> void:
 	var velocity_dir: Vector3 = linear_velocity.normalized()
 	var forward: Vector3 = global_basis.x
-	var up: Vector3 = global_basis.y
 	var right: Vector3 = global_basis.z
 	var speed: float = linear_velocity.length()
-	
 	# Angle of attack in radians
-	var aoa_rad: float = forward.angle_to(velocity_dir)
-	
+	var aoa_rad: float = forward.angle_to(velocity_dir)	
+	var lift_demand : float
+	if aoa_rad < deg_to_rad(0.001):
+		lift_demand = 1.0
+		return
+	lift_demand = G_forces.length()
+	# Convert to degrees for lift coefficient calculation
+	var aoa_deg: float = rad_to_deg(aoa_rad)
 	var aoa_yaw_deg : float = rad_to_deg(right.angle_to(velocity_dir))
 	var slip_angle : float = abs(aoa_yaw_deg - 90.0)
 	
-	#print("slip angle:", slip_angle)
-	# Early exit if flying straight
-	if aoa_rad < deg_to_rad(0.001):
-		return
-	# Convert to degrees for lift coefficient calculation
-	var aoa_deg: float = rad_to_deg(aoa_rad)
-	
-	# Lift coefficient with stall
-	
 	# Dynamic pressure (realistic: ½ρv²)
 	var dynamic_pressure: float = 0.5 * atmospheric_density * speed * speed
-	# Bank angle (affects how much lift goes into turning vs staying level) TODO: change vector3.UP when adding variable planet gravity...
-	#var bank_factor: float = 1.0 - abs(up.dot(Vector3.UP))
-	
-	# Perpendicular force direction (toward where ship is facing)
 	var turn_axis: Vector3 = velocity_dir.cross(forward).normalized()
-	
 	var lift_direction: Vector3 = turn_axis.cross(velocity_dir).normalized()
-	#penalizes YAWing
 	var yaw_penalty : float = clamp(1-((slip_angle)/ 45), 0, 1)
-	#print("yaw penalty: ", slip_angle)
-	#TODO:HOW!???
-	var CL: float = calculate_atmospheric_lift_coefficient(aoa_deg, slip_angle)
+
+	var CL: float = calculate_atmospheric_lift_coefficient(aoa_deg, slip_angle, lift_demand)
 	calculate_yaw_stabilization(slip_angle, speed)
-	calculate_flow_separation_drag(speed, CL)
-		#calculate_flow_separation_drag(speed, CL)
-	# Final force
+
+	#print("CL: ", CL)
 	var lift_force: Vector3 =lift_direction * atmospheric_lift * CL * dynamic_pressure * yaw_penalty
 
 	apply_central_force(lift_force)
 #TODO: vary slip angles depending on velocity
+
+
+
 ##Returns lift coefficient based on angle of attack. Includes stall behavior.
-func calculate_atmospheric_lift_coefficient(aoa_degrees: float, slip_angle : float) -> float:
+func calculate_atmospheric_lift_coefficient(aoa_degrees: float, slip_angle : float, lift_multiplier : float) -> float:
 	var aoa: float = abs(aoa_degrees)
-	
-	# Speed factor: tighter tolerances at high speed
+	var FLAG_stall := false
+	var critical_CL := 1.5
+	var necessary_CL : float = 0.1 * aoa * lift_multiplier
+	##TODO: review
+	var stall : float = critical_CL * 0.85
+	#NOTE: uncomment for previous system.
+	## Speed factor: tighter tolerances at high speed
 	var mach_number: float = linear_velocity.length() / 343.0  # 343 m/s = Mach 1 at sea level
 	var speed_factor: float = clamp(mach_number / 0.5, 0.3, 1.0)  # 0.3x tolerance at low speed, 1.0x at Mach 0.5+
-	
+	#
 	# Pitch stall component (AoA tolerance decreases with speed)
-	var max_safe_aoa: float = 18.0 * (1.0 - speed_factor * 0.75)  # 18° at low speed, 7.2° at high speed
-	var stall_aoa: float = max_safe_aoa * 1.2
+	#var max_safe_aoa: float = 18.0 * (1.0 - speed_factor * 0.75)  # 18° at low speed, 7.2° at high speed
+	#var stall_aoa: float = max_safe_aoa * 1.2
 	
 	var pitch_CL: float
-	if aoa < max_safe_aoa:
-		pitch_CL = 0.1 * aoa
-	elif aoa < stall_aoa:
-		pitch_CL = 1.5
+	if necessary_CL < stall:
+		pitch_CL = necessary_CL
+	elif necessary_CL < critical_CL:
+		pitch_CL = lerp(stall, critical_CL, 
+		(necessary_CL - stall)/(critical_CL - stall))
+		print("semi stall")
 	else:
-		print("STALL")
-		pitch_CL = max(0.2, 1.5 - (aoa - stall_aoa) * 0.15)
+		print("STALL at ", lift_multiplier, "G ; aoa is ", aoa)
+		FLAG_stall = true
+		pitch_CL = critical_CL * 0.35
+	
 	
 	
 	# Yaw slip penalty (margins tighten dramatically with speed)
-	var max_safe_slip: float = 15.0 * (1.0 - speed_factor * 0.8)  # 15° at low speed, 3.5° at high speed
+	var max_safe_slip: float = 10.0 * (1.0 - speed_factor * 0.9)  # 15° at low speed, 3.5° at high speed
 	var critical_slip: float = max_safe_slip * 2.0
 	
 	var slip_penalty: float
@@ -286,53 +303,41 @@ func calculate_atmospheric_lift_coefficient(aoa_degrees: float, slip_angle : flo
 		var slip_ratio: float = (slip_angle - max_safe_slip) / max_safe_slip
 		slip_penalty = 1.0 - slip_ratio * 0.7  # Drop to 0.3
 	else:
-		print("STALL")
+		print("SLIP")
+		FLAG_stall = true
 		# Catastrophic
 		slip_penalty = max(0.05, 0.3 - ((slip_angle - critical_slip) / 20.0))
-	print(pitch_CL * slip_penalty)
+	if FLAG_stall:
+		calculate_flow_separation_drag(linear_velocity.length(), pitch_CL * slip_penalty)
 	return pitch_CL * slip_penalty
 		
 
 func calculate_flow_separation_drag(speed: float, CL: float) -> void:
-	if speed <= 10.0:
+	if speed <= 1.0:
 		return
 	
 	# Drag scales with speed and how badly you're stalled
 	var stall_severity: float = 1.0 - (CL / 1.5)  # 0 = no stall, 1 = full stall
 	var drag_coefficient: float = 0.5 + (stall_severity * 2.0)  # 0.5 to 2.5
 	
-	# Drag force: ½ρv²·Cd·A (using atmospheric_lift as reference area)
 	var drag_force: float = 0.5 * atmospheric_density * speed * speed * drag_coefficient * atmospheric_lift * 0.1
 	
 	apply_central_force(-linear_velocity.normalized() * drag_force)
-	
-#func calculate_flow_separation_drag() -> void:
-	#if linear_velocity.length() <= 10.0:
-		#return
-	#var local_linear :Vector3=global_basis.inverse() * linear_velocity
-	#if local_linear.y <= 0:
-		##apply_central_force(global_basis * Vector3(0,(atmospheric_lift * 1.5) * (linear_velocity.length()*linear_velocity.length()),0))
-		#pass
-	#apply_central_force(-linear_velocity.normalized() * (atmospheric_lift) * (linear_velocity.length()) * atmospheric_density)
-	##apply_central_force(global_basis * -Vector3(0,(atmospheric_lift * 1.5) * (linear_velocity.length()*linear_velocity.length()),0))
-	
+
 ##TODO: clean this up.
 func calculate_yaw_stabilization(slip_angle: float, speed: float) -> void:
-	if slip_angle < 0.4:  # Not slipping enough to matter
+	if slip_angle <= 1.0:
 		return
 	# Determine which direction we're slipping
-	
-	
-	
 	# Cross product tells us if slipping left or right
 	var slip_direction: float = sign( rad_to_deg(global_basis.z.angle_to(linear_velocity.normalized())) - 90)
-	print( rad_to_deg(global_basis.z.angle_to(linear_velocity.normalized())) - 90)
-	# Torque magnitude scales with slip angle and speed²
-	var stabilization_strength: float = slip_angle * speed * speed * atmospheric_density * atmospheric_axial_strength.y
+	#print( rad_to_deg(global_basis.z.angle_to(linear_velocity.normalized())) - 90)
+	# Torque magnitude scales with slip angle and speed
+	var stabilization_strength: float = slip_angle * speed * speed * atmospheric_density * atmospheric_axial_strength.y * 3
 	
 	# Apply yaw torque to rotate back into the wind
 	var yaw_correction: Vector3 = global_basis.y * slip_direction * stabilization_strength
-	print("pulled yaw of ", yaw_correction)
+	#print("pulled yaw of ", yaw_correction)
 	apply_torque(yaw_correction)
 	
 
@@ -340,7 +345,28 @@ func calculate_yaw_stabilization(slip_angle: float, speed: float) -> void:
 func calculate_g_force(delta: float):
 	var acceleration :Vector3 = (linear_velocity - previous_velocity) / delta
 	G_forces = basis * (acceleration / G_FORCE)
+	var gvar := G_forces.length()
 	#print("G forces: ",G_forces.length())
+	var s_atm := sqrt(atmospheric_density)
+	#as atmospheres get denser, tolerances drop logarithmicaly.
+	var G_limit_critical : float = lerp(max_G_absolute, max_atmospheric_G_absolute, s_atm)
+	var G_limit_instant : float = lerp(max_G_absolute, max_atmospheric_G_tolerance_instant, s_atm)
+	var G_limit : float = lerp(max_G_absolute, max_atmospheric_G_tolerance, s_atm)
+	
+	if gvar <= G_limit:
+		return
+	elif gvar <= G_limit_instant:
+		print("approaching safe mechanical limit")
+		return
+	elif gvar <= G_limit_critical:
+		print("approaching dangerous mechanical limit")
+		return
+	elif gvar >= crash_G:
+		print("crash detected.")
+		return
+	else:
+		print("mechanical limit reached. failure imminent.")
+	
 ##Calculate linear acceleration based off of input and other factors.
 func calculate_ship_linear_velocity():
 	
@@ -380,7 +406,7 @@ func calculate_ship_linear_velocity():
 		for x in range(3):
 			if !direction[x]:
 				if x == 0:
-					print("adjusting linear speed. Target is ", target_speed)
+					#print("adjusting linear speed. Target is ", target_speed)
 					#is our velocity higher than target?
 					if abs(x_velocity - target_speed) > 1.0:
 						#speed for either direction. slow down if going faster.
@@ -388,8 +414,6 @@ func calculate_ship_linear_velocity():
 							final_velocity[x] = -forward_Backward_speed_multiplier.y * mass * GLOBAL_STRENGTH_MULTIPLIER
 						else:
 							final_velocity[x] = forward_Backward_speed_multiplier.x * mass * GLOBAL_STRENGTH_MULTIPLIER
-					else:
-						final_velocity[x] = min(forward_Backward_speed_multiplier.x, forward_Backward_speed_multiplier.y)  * mass * GLOBAL_STRENGTH_MULTIPLIER * (x_velocity - target_speed)
 				else:
 					final_velocity[x] = flight_assist[x] * (boost_multiplier[x] * int(boost) + int(!boost))
 		#TODO: for when gravity while vary, change this.
@@ -477,8 +501,6 @@ func calculate_ship_rotation() -> Vector3:
 		for x in range(3):
 			if torque[x] == 0:
 				torque[x] = axial_assist[x]
-	
-
 	return torque
 	
 ##Calculates axial flight assist required to stop all transient rotations.
@@ -545,9 +567,11 @@ func _unhandled_input(event: InputEvent) -> void:
 
 	if event is InputEventKey:
 		
-		flight_assist_throttle += int(event.is_action_pressed("flight assist increase speed",
-		 true))-int(event.is_action_pressed("flight assist reduce speed", true)) * current_assist_throttle_increment * 0.5
-		print(flight_assist_throttle)
+		if event.is_action_pressed("flight assist increase speed", true):
+			flight_assist_throttle += current_assist_throttle_increment
+		elif event.is_action_pressed("flight assist reduce speed", true):
+			flight_assist_throttle -= current_assist_throttle_increment
+		flight_assist_throttle = clamp(flight_assist_throttle,-100, 100)
 ##sheds mouse position to slowly push the cursor towards the center at speeds set by the pilot.
 func flight_mouse_depreciation(delta: float):
 	if current_is_relative_mouse == 0.0:
