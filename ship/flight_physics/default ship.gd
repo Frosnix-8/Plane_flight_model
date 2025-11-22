@@ -50,6 +50,7 @@ const G_CONSTANT := 6.6743
 ##GFORCE
 var previous_velocity := Vector3.ZERO
 var G_forces := Vector3.ZERO
+var previous_G_forces : PackedVector3Array
 @export_group("G_forces")
 ##Max G's the ship is allowed to turn at 1 atmosphere. scales logarithmicaly
 @export var max_atmospheric_G_tolerance : float = 10.0
@@ -61,8 +62,6 @@ var G_forces := Vector3.ZERO
 @export var max_G_absolute : float = 30.0
 var crash_G : float = 50.0
 @export_group("misc.")
-##ALERT: depracated, remove when possible.
-@export var in_atmosphere := false
 ##Drag coefficient of ship at 1 atmosphere.
 @export_group("aerodynamic parameters")
 @export var atmospheric_drag := 0.1
@@ -77,6 +76,7 @@ var crash_G : float = 50.0
 
 	#FLIGHT ASSIST
 var flight_assist_enabled := true
+##NOTE: to remove. Flight physics already handle it
 var thrust_gravity_offset : Vector3
 ##Forward speed in meters the ship tries to reach.
 var flight_assist_throttle := 0.0
@@ -91,7 +91,7 @@ var boost := false
 ##max speed and acceleration, maybe rotation too are amplified.
 @export var boost_multiplier : Vector3 = Vector3(2.0, 2.4, 2.0)
 ##Speed multiplier for in-atmosphere boost... NOTE: might change.
-@export var atmos_boost_speed_multiplier : float = 1.8
+@export var atmospheric_boost_speed_multiplier : float = 1.8
 ##experimental: boost torque multiplier. 
 @export var boost_torque_multiplier := Vector3.ONE * 1.5
 ##The current speed. based off a calculation of whether boosting, in atmosphere....
@@ -113,7 +113,7 @@ var current_mouse_deadzone : float
 var current_flight_mouse_sensitivity : float
 var current_is_relative_mouse : float
 var current_assist_throttle_increment : float
-
+var current_player_camera
 #player related variants.
 var is_target := false
 var piloted := false
@@ -133,7 +133,7 @@ var input_queued := false
 
 
 #FLAGS
-
+var got_inertia := false
 
 
 var frametime := 0
@@ -145,6 +145,9 @@ func _ready() -> void:
 	audiothread.start(TEMP_audio,Thread.PRIORITY_NORMAL)
 	process_priority = 4
 
+	for x : int in range(60):
+		previous_G_forces.append(Vector3.ZERO)
+
 	for x : int in range(3):
 		max_axial_speed[x] = deg_to_rad(max_degree_axial_speed[x])
 		max_atmospheric_axial_speed[x] = deg_to_rad(max_degree_atmospheric_axial_speed[x])
@@ -152,6 +155,8 @@ func _ready() -> void:
 		xyz_multiplier_length_array.append(x.length())
 
 func _physics_process(delta: float) -> void:
+	if !got_inertia:
+		call_deferred("calculate_ship_inertia")
 	#print("velocity ", linear_velocity.length())
 	#print(angular_velocity)
 	#print("Piloting: ", self.name, " | Interior.Current_Pilot = ", Interior.Current_Pilot)a
@@ -270,8 +275,7 @@ func calculate_atmospheric_lift_coefficient(aoa_degrees: float, slip_angle : flo
 	var stall : float = critical_CL * 0.85
 	#NOTE: uncomment for previous system.
 	## Speed factor: tighter tolerances at high speed
-	var mach_number: float = linear_velocity.length() / 343.0  # 343 m/s = Mach 1 at sea level
-	var speed_factor: float = clamp(mach_number / 0.5, 0.3, 1.0)  # 0.3x tolerance at low speed, 1.0x at Mach 0.5+
+	var speed_factor: float = clamp((linear_velocity.length() / 343.0) / 0.5, 0.3, 1.0)  # 0.3x tolerance at low speed, 1.0x at Mach 0.5+
 	#
 	# Pitch stall component (AoA tolerance decreases with speed)
 	#var max_safe_aoa: float = 18.0 * (1.0 - speed_factor * 0.75)  # 18° at low speed, 7.2° at high speed
@@ -292,7 +296,7 @@ func calculate_atmospheric_lift_coefficient(aoa_degrees: float, slip_angle : flo
 	
 	
 	# Yaw slip penalty (margins tighten dramatically with speed)
-	var max_safe_slip: float = 10.0 * (1.0 - speed_factor * 0.9)  # 15° at low speed, 3.5° at high speed
+	var max_safe_slip: float = 10.0 * (1.0 - speed_factor * 0.97)  # 15° at low speed, 3.5° at high speed
 	var critical_slip: float = max_safe_slip * 2.0
 	
 	var slip_penalty: float
@@ -345,28 +349,44 @@ func calculate_yaw_stabilization(slip_angle: float, speed: float) -> void:
 func calculate_g_force(delta: float):
 	var acceleration :Vector3 = (linear_velocity - previous_velocity) / delta
 	G_forces = basis * (acceleration / G_FORCE)
-	var gvar := G_forces.length()
-	#print("G forces: ",G_forces.length())
+	var gvar := 0.0
+	for x in previous_G_forces.size():
+		gvar += previous_G_forces[x].length()
+	gvar += G_forces.length()
+	gvar /= previous_G_forces.size() + 1
+	for x : int in previous_G_forces.size() - 1:
+		previous_G_forces[x] = previous_G_forces[x+1]
+	previous_G_forces[previous_G_forces.size() - 1] = G_forces
+	
+
+	
 	var s_atm := sqrt(atmospheric_density)
 	#as atmospheres get denser, tolerances drop logarithmicaly.
 	var G_limit_critical : float = lerp(max_G_absolute, max_atmospheric_G_absolute, s_atm)
 	var G_limit_instant : float = lerp(max_G_absolute, max_atmospheric_G_tolerance_instant, s_atm)
 	var G_limit : float = lerp(max_G_absolute, max_atmospheric_G_tolerance, s_atm)
-	
+	print(snappedf(gvar, 0.1))
 	if gvar <= G_limit:
 		return
+	#
 	elif gvar <= G_limit_instant:
 		print("approaching safe mechanical limit")
 		return
+	#max g's you
 	elif gvar <= G_limit_critical:
 		print("approaching dangerous mechanical limit")
 		return
+	#High speed crash
 	elif gvar >= crash_G:
 		print("crash detected.")
 		return
+	#Exceeding safe G's without crash.
 	else:
+		
 		print("mechanical limit reached. failure imminent.")
 	
+
+
 ##Calculate linear acceleration based off of input and other factors.
 func calculate_ship_linear_velocity():
 	
@@ -441,17 +461,20 @@ func calculate_ship_linear_velocity():
 	apply_central_force(basis * final_velocity)
 	#print(basis.inverse() * linear_velocity)
 
-
+func calculate_ship_inertia():
+	inertia = PhysicsServer3D.body_get_direct_state(get_rid()).inverse_inertia.inverse()
 ##Calculates torque for each axis based off key input. for simplicity relative torque is identical on each axis: each axis rotates at the same speed.
 func calculate_ship_rotation() -> Vector3:
-	inertia = PhysicsServer3D.body_get_direct_state(get_rid()).inverse_inertia.inverse()
 	var corrected_angular := basis.inverse() * angular_velocity
-	#separated roll because I forgot and i'm too lazy.
 	var target_rotation := Vector2.ZERO
 	var rolltation := 0.0
 	var torque :=  Vector3.ZERO
 	var normalized_mouse_position : Vector2 = mouse_relative_position / current_max_mouse_distance
 	var axp : Vector3 = lerp(axial_strength, atmospheric_axial_strength, clamp(atmospheric_density * (linear_velocity.length()/100.0 + 0.1),0,1))
+	
+	var axial_speed_limit : Vector3 = lerp(max_axial_speed, max_atmospheric_axial_speed, atmospheric_density)
+
+	#print(axial_speed_limit)
 	#print(normalized_mouse_position.length())
 	#keyboard and mouse are not separate because they complement each other. the non-mouse axis requires keyboard input.
 	if (normalized_mouse_position.length() > current_mouse_deadzone):
@@ -474,37 +497,32 @@ func calculate_ship_rotation() -> Vector3:
 		
 		# Apply torque directly (rotational force)
 		torque = Vector3(
-			rolltation * inertia.x * axp.x * int(abs(corrected_angular.x) < max_axial_speed.x or sign(corrected_angular.x) != sign(rolltation)),
-			-target_rotation.y * inertia.y * axp.y * int(abs(corrected_angular.y) < max_axial_speed.y or sign(corrected_angular.y) != sign(-target_rotation.y)),
-			target_rotation.x * inertia.z * axp.z *int(abs(corrected_angular.z) < max_axial_speed.z or sign(corrected_angular.z) != sign(target_rotation.x))
+			rolltation * inertia.x * axp.x * int(abs(corrected_angular.x) < axial_speed_limit.x or sign(corrected_angular.x) != sign(rolltation)),
+			-target_rotation.y * inertia.y * axp.y * int(abs(corrected_angular.y) < axial_speed_limit.y or sign(corrected_angular.y) != sign(-target_rotation.y)),
+			target_rotation.x * inertia.z * axp.z *int(abs(corrected_angular.z) < axial_speed_limit.z or sign(corrected_angular.z) != sign(target_rotation.x))
 			)
 	else:
 		var rot_input : Array = [rolltation, -target_rotation.y, target_rotation.x]
 		for x:int in range(3):
-			#1: if going in opposite direction of current rotation, put all force to change direction. otherwise limit based off input distance.
-
 			#opposite direction compensation.
 			if rot_input[x] != 0 and sign(corrected_angular[x]) != sign(rot_input[x]):
 				torque[x] = -sign(corrected_angular[x]) * inertia[x]
 			#same direction at specific speed.
-			if abs(corrected_angular[x]) < max_axial_speed[x] * abs(rot_input[x]):
+			if abs(corrected_angular[x]) < axial_speed_limit[x] * abs(rot_input[x]):
 				torque[x] = rot_input[x] * inertia[x] * axp[x]
 			#nothing.
 			else:
 				torque[x] = 0.0
-		
-		
-		
 		#now this is the issue. NOTE: Solved for now.
-		var axial_assist := axial_flight_assist(axp)
+		var axial_assist := axial_flight_assist(axp, axial_speed_limit)
 
 		for x in range(3):
 			if torque[x] == 0:
 				torque[x] = axial_assist[x]
 	return torque
-	
+
 ##Calculates axial flight assist required to stop all transient rotations.
-func axial_flight_assist(axp: Vector3) -> Vector3:
+func axial_flight_assist(axp: Vector3, axl : Vector3) -> Vector3:
 	if angular_velocity.length() == 0:
 		return Vector3.ZERO
 	var corrected_angular := basis.inverse() * angular_velocity
@@ -514,7 +532,7 @@ func axial_flight_assist(axp: Vector3) -> Vector3:
 		#TODO: add axial speed limits.
 	for x in range(3):
 		if corrected_angular[x] != 0:
-			var speed_ratio :float= abs(corrected_angular[x]) / max_axial_speed[x]
+			var speed_ratio :float= abs(corrected_angular[x]) / axl[x]
 			#print(speed_ratio)
 			if speed_ratio > high_speed_threshold:
 				# High speed: full braking
@@ -591,13 +609,13 @@ func pilot_activation(is_disabling: bool) -> void:
 		set_process_unhandled_input(true)
 		set_process_input(true)
 		#all pilot specific parameters are defined here.
-		current_prefered_non_mouse_axe = Interior.Current_Pilot.prefered_non_mouse_axe
-		current_mouse_deadzone = Interior.Current_Pilot.mouse_deadzone
-		current_max_mouse_distance = Interior.Current_Pilot.max_mouse_distance
-		current_flight_mouse_sensitivity = Interior.Current_Pilot.flight_mouse_sensitivity
-		current_is_relative_mouse = Interior.Current_Pilot.relative_flight_mouse
-		current_assist_throttle_increment = Interior.Current_Pilot.assist_throttle_increment
-		#print(prefered_non_mouse_axe)
+		current_prefered_non_mouse_axe = Interior.Current_Pilot.pilot_prefered_non_mouse_axe
+		current_mouse_deadzone = Interior.Current_Pilot.pilot_mouse_deadzone
+		current_max_mouse_distance = Interior.Current_Pilot.pilot_max_mouse_distance
+		current_flight_mouse_sensitivity = Interior.Current_Pilot.pilot_flight_mouse_sensitivity
+		current_is_relative_mouse = Interior.Current_Pilot.pilot_relative_flight_mouse
+		current_assist_throttle_increment = Interior.Current_Pilot.pilot_assist_throttle_increment
+		current_player_camera = Interior.Current_Pilot.Camera
 		print("activated rigidbody flight mode")
 
 	if is_disabling:

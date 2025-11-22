@@ -1,7 +1,7 @@
 [gd_resource type="ShaderMaterial" load_steps=3 format=3 uid="uid://q0j0rwrbioc4"]
 
-[ext_resource type="Material" uid="uid://bsan8hdyc0yo7" path="res://Interactible/Variable highlighter.tres" id="1_w3dyf"]
-[ext_resource type="Shader" uid="uid://rsq0sxp5n5oy" path="res://Interactible/otherhighlight.gdshader" id="2_qoad1"]
+[ext_resource type="Material" uid="uid://bsan8hdyc0yo7" path="res://Highlight_shader/Variable highlighter.tres" id="1_w3dyf"]
+[ext_resource type="Shader" uid="uid://rsq0sxp5n5oy" path="res://Highlight_shader/otherhighlight.gdshader" id="2_qoad1"]
 
 [resource]
 render_priority = 0

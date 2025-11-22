@@ -4,12 +4,12 @@ importer="scene"
 importer_version=1
 type="PackedScene"
 uid="uid://bytbpns7xevwf"
-path="res://.godot/imported/ship with interiors.glb-980a75f382f9dfdd84e22b54313182ea.scn"
+path="res://.godot/imported/ship with interiors.glb-d24fbd4c39be2b4d898c01e1daabf171.scn"
 
 [deps]
 
-source_file="res://ship/template ship/ship with interiors.glb"
-dest_files=["res://.godot/imported/ship with interiors.glb-980a75f382f9dfdd84e22b54313182ea.scn"]
+source_file="res://ship/SHIP_GLB/ship with interiors.glb"
+dest_files=["res://.godot/imported/ship with interiors.glb-d24fbd4c39be2b4d898c01e1daabf171.scn"]
 
 [params]
 

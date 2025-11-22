@@ -1,11 +1,11 @@
 [gd_scene load_steps=11 format=3 uid="uid://b2gej66e63mk4"]
 
-[ext_resource type="Script" uid="uid://crobohh3y2xxx" path="res://Player/PlayerPrimaryScript.gd" id="1_4flbx"]
-[ext_resource type="Script" uid="uid://b0lm8olhrpqne" path="res://Player/ray.gd" id="2_onrkg"]
-[ext_resource type="Script" uid="uid://3fdwds102yoq" path="res://Player/g_check_ray.gd" id="2_sweqy"]
-[ext_resource type="Script" uid="uid://4tml5i76lkms" path="res://Player/ray_sub.gd" id="3_i3pqv"]
+[ext_resource type="Script" uid="uid://crobohh3y2xxx" path="res://Player/primary control/PlayerPrimaryScript.gd" id="1_4flbx"]
+[ext_resource type="Script" uid="uid://b0lm8olhrpqne" path="res://Player/reparenting/ray.gd" id="2_onrkg"]
+[ext_resource type="Script" uid="uid://3fdwds102yoq" path="res://Player/reparenting/g_check_ray.gd" id="2_sweqy"]
+[ext_resource type="Script" uid="uid://4tml5i76lkms" path="res://Player/reparenting/ray_sub.gd" id="3_i3pqv"]
 [ext_resource type="Material" uid="uid://xmjo2mp2pv3t" path="res://debugmat.tres" id="4_hqtel"]
-[ext_resource type="Script" uid="uid://bxmkx64ervm5w" path="res://Player/playercam.gd" id="5_fhl08"]
+[ext_resource type="Script" uid="uid://bxmkx64ervm5w" path="res://Player/primary control/playercam.gd" id="5_fhl08"]
 
 [sub_resource type="CapsuleShape3D" id="CapsuleShape3D_i3pqv"]
 radius = 0.4
@@ -26,9 +26,7 @@ size = Vector3(0.2, 0.2, 0.2)
 floor_snap_length = 0.15
 platform_on_leave = 2
 script = ExtResource("1_4flbx")
-CShader_outline_thickness_def = 5.0
 JUMP_VELOCITY = 2.5
-relative_flight_mouse = 0.0
 
 [node name="Collision" type="CollisionShape3D" parent="."]
 shape = SubResource("CapsuleShape3D_i3pqv")

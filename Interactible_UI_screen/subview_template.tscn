@@ -1,0 +1,77 @@
+[gd_scene load_steps=6 format=3 uid="uid://bcsa5d5ac55p"]
+
+[ext_resource type="Script" uid="uid://jxu3ybg5su0u" path="res://Interactible_UI_screen/UI_screen_template.gd" id="1_24iir"]
+
+[sub_resource type="ViewportTexture" id="ViewportTexture_el76t"]
+viewport_path = NodePath("SubViewport")
+
+[sub_resource type="StandardMaterial3D" id="StandardMaterial3D_ovnox"]
+resource_local_to_scene = true
+albedo_color = Color(0, 0, 0, 1)
+roughness = 0.0
+emission_enabled = true
+emission_texture = SubResource("ViewportTexture_el76t")
+
+[sub_resource type="QuadMesh" id="QuadMesh_vmfih"]
+resource_local_to_scene = true
+material = SubResource("StandardMaterial3D_ovnox")
+size = Vector2(1.6, 1)
+
+[sub_resource type="ConcavePolygonShape3D" id="ConcavePolygonShape3D_3quag"]
+data = PackedVector3Array(0.79999995, -0.5, 0, -0.79999995, -0.5, 0, 0.79999995, 0.5, 0, -0.79999995, -0.5, 0, -0.79999995, 0.5, 0, 0.79999995, 0.5, 0)
+
+[node name="MeshInstance3D" type="MeshInstance3D"]
+mesh = SubResource("QuadMesh_vmfih")
+script = ExtResource("1_24iir")
+
+[node name="Mousedetect" type="Area3D" parent="."]
+collision_layer = 32768
+collision_mask = 32768
+
+[node name="CollisionShape3D" type="CollisionShape3D" parent="Mousedetect"]
+shape = SubResource("ConcavePolygonShape3D_3quag")
+
+[node name="SubViewport" type="SubViewport" parent="."]
+disable_3d = true
+handle_input_locally = false
+oversampling = false
+size = Vector2i(512, 360)
+
+[node name="Control" type="Control" parent="SubViewport"]
+layout_mode = 3
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+metadata/_edit_use_anchors_ = true
+
+[node name="Label" type="Label" parent="SubViewport/Control"]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+theme_override_colors/font_color = Color(1, 1, 1, 1)
+theme_override_colors/font_outline_color = Color(0, 0, 0, 1)
+theme_override_font_sizes/font_size = 50
+text = "THIS IS TEXT
+NOTHING ELSE
+IS SPECIAL..."
+horizontal_alignment = 1
+
+[node name="Button" type="Button" parent="SubViewport/Control"]
+layout_mode = 1
+anchors_preset = 7
+anchor_left = 0.5
+anchor_top = 1.0
+anchor_right = 0.5
+anchor_bottom = 1.0
+offset_left = -49.0
+offset_top = -48.0
+offset_right = 49.0
+grow_horizontal = 2
+grow_vertical = 0
+
+[connection signal="input_event" from="Mousedetect" to="." method="_on_mouse_enter"]

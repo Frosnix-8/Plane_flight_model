@@ -1,6 +1,6 @@
 [gd_resource type="ShaderMaterial" load_steps=2 format=3 uid="uid://bsan8hdyc0yo7"]
 
-[ext_resource type="Shader" uid="uid://cam8jy6t5i2x3" path="res://Interactible/Variable_highlight.gdshader" id="1_hkfua"]
+[ext_resource type="Shader" uid="uid://cam8jy6t5i2x3" path="res://Highlight_shader/Variable_highlight.gdshader" id="1_hkfua"]
 
 [resource]
 render_priority = 0

@@ -98,7 +98,7 @@ func pilot_toggle(Pilot: CharacterBody3D, is_current_Pilot : bool = false) -> vo
 		if pilot_tween:
 			pilot_tween.kill()
 		pilot_tween = create_tween()
-		pilot_tween.tween_property(Current_Pilot_Cam, "position", Pilot.cam_original_position, 1)
+		pilot_tween.tween_property(Current_Pilot_Cam, "position", Pilot.camera_original_position, 1)
 		Current_Pilot.pilot_activation(true)
 		The_Captain.pilot_activation(true)
 		Current_Pilot.reparent(Pilot_parent, true)
@@ -113,7 +113,7 @@ func pilot_toggle(Pilot: CharacterBody3D, is_current_Pilot : bool = false) -> vo
 		The_Captain.piloted = true
 		Pilot.pilot_activation(false)
 		The_Captain.pilot_activation(false)
-		Current_Pilot_Cam = Pilot.cam
+		Current_Pilot_Cam = Pilot.Camera
 		if pilot_tween:
 			pilot_tween.kill()
 		pilot_tween = create_tween()
@@ -121,9 +121,9 @@ func pilot_toggle(Pilot: CharacterBody3D, is_current_Pilot : bool = false) -> vo
 		pilot_tween.parallel()
 		pilot_tween.tween_property(Current_Pilot_Cam, "global_position", Pilot_campos.global_position, 1)
 		pilot_tween.parallel()
-		pilot_tween.tween_property(Pilot.omnipivot, "rotation", Vector3.ZERO, 0.3)
+		pilot_tween.tween_property(Pilot.Vertical_pivot, "rotation", Vector3.ZERO, 0.3)
 		pilot_tween.parallel()
-		pilot_tween.tween_property(Pilot.pivot, "rotation", Vector3.ZERO, 0.3)
+		pilot_tween.tween_property(Pilot.Horizontal_pivot, "rotation", Vector3.ZERO, 0.3)
 		pilot_tween.tween_callback(func(): 
 			#Pilot_cam.global_position = Pilot.cam.global_position
 			Pilot_parent = Pilot.get_parent()

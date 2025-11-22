@@ -1,6 +1,6 @@
 [gd_scene load_steps=5 format=3 uid="uid://xm0vc14774in"]
 
-[ext_resource type="Shader" uid="uid://rsq0sxp5n5oy" path="res://Interactible/otherhighlight.gdshader" id="1_mjeio"]
+[ext_resource type="Shader" uid="uid://rsq0sxp5n5oy" path="res://Highlight_shader/otherhighlight.gdshader" id="1_mjeio"]
 
 [sub_resource type="ShaderMaterial" id="ShaderMaterial_o43r3"]
 render_priority = 0

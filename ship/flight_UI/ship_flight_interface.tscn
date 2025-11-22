@@ -1,0 +1,44 @@
+[gd_scene load_steps=7 format=3 uid="uid://cyfkmrde2dugc"]
+
+[ext_resource type="Script" uid="uid://bo0e5k4ittteh" path="res://ship/flight_UI/ship_flight_interface.gd" id="1_ipnrs"]
+[ext_resource type="PackedScene" uid="uid://ddb0ywd4ix8d7" path="res://ship/flight_UI/ship_flight_ui.tscn" id="2_5vxmn"]
+
+[sub_resource type="ViewportTexture" id="ViewportTexture_el76t"]
+viewport_path = NodePath("SubViewport")
+
+[sub_resource type="StandardMaterial3D" id="StandardMaterial3D_ovnox"]
+resource_local_to_scene = true
+albedo_color = Color(0, 0, 0, 1)
+roughness = 0.0
+emission_enabled = true
+emission_texture = SubResource("ViewportTexture_el76t")
+
+[sub_resource type="QuadMesh" id="QuadMesh_vmfih"]
+resource_local_to_scene = true
+material = SubResource("StandardMaterial3D_ovnox")
+size = Vector2(1.6, 1)
+
+[sub_resource type="ConcavePolygonShape3D" id="ConcavePolygonShape3D_3quag"]
+data = PackedVector3Array(0.79999995, -0.5, 0, -0.79999995, -0.5, 0, 0.79999995, 0.5, 0, -0.79999995, -0.5, 0, -0.79999995, 0.5, 0, 0.79999995, 0.5, 0)
+
+[node name="MeshInstance3D" type="MeshInstance3D"]
+mesh = SubResource("QuadMesh_vmfih")
+script = ExtResource("1_ipnrs")
+
+[node name="Mousedetect" type="Area3D" parent="."]
+collision_layer = 32768
+collision_mask = 32768
+
+[node name="CollisionShape3D" type="CollisionShape3D" parent="Mousedetect"]
+shape = SubResource("ConcavePolygonShape3D_3quag")
+
+[node name="SubViewport" type="SubViewport" parent="."]
+disable_3d = true
+handle_input_locally = false
+oversampling = false
+size = Vector2i(512, 360)
+render_target_update_mode = 3
+
+[node name="Control" parent="SubViewport" instance=ExtResource("2_5vxmn")]
+
+[connection signal="input_event" from="Mousedetect" to="." method="_on_mouse_enter"]

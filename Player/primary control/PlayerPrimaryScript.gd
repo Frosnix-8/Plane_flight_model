@@ -8,51 +8,64 @@ enum keyedrotaxes {pitch, roll, yaw}
 enum speedpreset {very_slow, slow, medium, quick, fast, very_fast, binary}#1.0, 5.0, 10.0, 12.5, 33.34, 50.0, 100.0
 const increments :Array = [1.0, 5.0,10.0,12.5, 33.34, 50.0, 100.0]
 #const assist_throttle_increment : Dictionary = {"1": 1.0, "5": 5.0, "10": 10.0, "12.5": 12.5, "1/3": 33.34, "50": 50.0, "Binary": 100.0}
-##The mother of all (normal) movement
+##The static body moving world system requires the world to move instead of the player. This node represents the world and moves relative to the player
+##It works for now, but when implementing larger distances in very very big worlds, it will be necessary to overhaul this system.
 @onready var world : Node3D = get_node("../environment")
 ##Parent
 @onready var Parent := get_node("../")
-##Reparent nodes
-@onready var reparent_casts : Array[RayCast3D] = [$horirotation/Primaray,$horirotation/Primaray/BackRay,$horirotation/Primaray/FrontRay,
+##Reparent raycast nodes
+@onready var Reparent_casts : Array[RayCast3D] = [$horirotation/Primaray,$horirotation/Primaray/BackRay,$horirotation/Primaray/FrontRay,
 $horirotation/Primaray/LeftRay, $horirotation/Primaray/RightRay, $horirotation/Primaray/topray]
+##Vector defined at runtime with all default reparent raycast target positions
 @onready var reparent_casts_defs : PackedVector3Array
+##GCheckRay checks if the player has ground "under" it relative to the new target object they are reparenting to. 
 @onready var GCheckRay := $horirotation/GCheckRay
-@onready var meshpivot := $Meshpivot
-@onready var pivot := $horirotation
-@onready var omnipivot := $horirotation/vertication
-@onready var cam := $horirotation/vertication/Playercam
-@onready var cam_original_position : Vector3 = $horirotation/vertication/Playercam.position
+##Meshpivot is the rotation axis for all mesh related nodes. Rotate this to rotate the entire player's mesh.
+@onready var Meshpivot := $Meshpivot
+##Horizontal rotation for camera rotation
+@onready var Horizontal_pivot := $horirotation
+##Vertical rotation for camera rotation
+@onready var Vertical_pivot := $horirotation/vertication
+##Player camera through which the viewport displays the world
+@onready var Camera := $horirotation/vertication/Playercam
+##Default camera position
+@onready var camera_original_position : Vector3 = $horirotation/vertication/Playercam.position
 
-##children that must be vertically transformed for height-sensitive actions.
+##children that must be vertically transformed for height-sensitive actions such as crouching.
 @onready var height_adjustables : Array
+##Collision hitbox of the player as a capsule. mainly used for adjusting height and width, among other things.
 @onready var Collision_Capsule := $Collision
 ##ALERT: TEMPORARY; ALL LOGIC INCLUDING THIS MUST BE REMOVED WHEN IMPLEMENTING PROPER RIGGED CHARACTERS
 @onready var TEMP_MESH_CAPSULE := $Meshpivot/Placeholdermesh
 ##Global context shader.
 @export_group("shaders")
-@export var CShader_outline_thickness_def := 10.0
-var Context_shader : ShaderMaterial = load("res://Interactible/Variable_outliner.tres")
-var ShaderTween : Tween
+@export var context_shader_outline_thickness_def := 10.0
+var Context_shader : ShaderMaterial = load("res://Highlight_shader/Variable_outliner.tres")
+var Context_ShaderTween : Tween
 
 ##Two audio channels intended to allow smooth interpolation between two ambiences. This is NOT to play 2 simultaneous ambiences
-@onready var audio_ambient_player_1 := $Ambient1
-@onready var audio_ambient_player_2 := $Ambient2
+@onready var Audio_ambient_player_1 := $Ambient1
+@onready var Audio_ambient_player_2 := $Ambient2
 ##global audio interpolation tweener repository?
 var Audio_Tweens : Dictionary = {}
-var ambience_progress := 0.0
+var audio_ambience_progress := 0.0
 @export_group("generic character settings")
+##Max speed of player when running
 @export var  SPEED := 5.0
+##acceleration speed. no references to describe it but it's 15
 @export var ACCEL := 15.0
+##Jump velocity. 4.5 is good
 @export var JUMP_VELOCITY := 4.5
+##default player height
 @export var HEIGHT := 1.7
 
 var player_radius := 0.4
-@export var atmos_density := 1.0
+@export var current_atmospheric_density := 1.0
 ##Whether I should keep this or fully replace with spacestate is subject to debate.
 @export var in_atmosphere := true
 @export var spacestate = spacestates.grounded
 @export_group("mouse settings")
-@export var SENSITIVITY := 0.001
+@export var MOUSE_SENSITIVITY := 0.001
 
 var current_height := 1.7
 ##Apparently, the reparent logic needs to be done before move and slide. otherwise it can cause unnecessary teleporting. 
@@ -61,10 +74,13 @@ var PENDING_TARGET_OBJECT : Node3D
 ##Target node that the player will rotate, experience gravity, move, and see relative to.
 ##If unaware, "reparent" is to reorient and stay relative to another "parent's" frame of reference. This is key to moving on a moving craft.
 var target_object: Node3D
+##Parent of target object
 var target_object_parent: Node3D
+##Type of target object: ship or something else.
 var target_type := targetstates.none
+##Target's relative position when reparented to it.
 var first_target_relative_position : Vector3
-var transition_frame := false
+var recalibrate_transition_frame := false
 var recalibrate := false
 var recalibrate_progress := 0.0
 var recalibrate_pivot_correction := true
@@ -72,11 +88,11 @@ var recalibrate_pivot_correction := true
 var current_gravity := 9.8
 var current_gravity_dir := Vector3.DOWN
 ##NOTE: Depracated. Check compatibility before removing.
-var plat_jumped := false
-var plat_relative_pos: Vector3
+#var plat_jumped := false
+#var plat_relative_pos: Vector3
 ##For some "skydiving" stuff
-var time_airborne := 0
-var frame_count := 0
+var current_time_airborne := 0
+var current_frame_count := 0
 
 
 ##the context menu is a system to allow seamless interaction with various objects in the environment. 
@@ -86,27 +102,28 @@ var is_in_context_menu := false
 
 #PILOT VARIABLES
 
-var is_pilot := false
+var player_is_pilot := false
 ##radius in "meters" that a mouse can traverse at most while piloting a ship or maybe something else. 
-##Initially on ship node, moved for convenience and modularity.
+##Initially on ship node, moved for convenience and modularity. Aside setting them, there is no reason to call them in this script.
 @export_subgroup("ship mouse parameters")
-@export var max_mouse_distance : float = 1 
+##Max mouse distance for player when on ship.
+@export var pilot_max_mouse_distance : float = 1 
 ##Which rotation axe is not handled on the mouse?
-@export var prefered_non_mouse_axe := keyedrotaxes.roll
+@export var pilot_prefered_non_mouse_axe := keyedrotaxes.roll
 ##distance relative to max mouse distance at which no movement is recognized.
-@export var mouse_deadzone := 0.06
+@export var pilot_mouse_deadzone := 0.06
 ##sensitivity when using flight controls.
-@export var flight_mouse_sensitivity := 1.0
+@export var pilot_flight_mouse_sensitivity := 1.0
 ##percentage of flight mouse position that depreciates each second.
-@export var relative_flight_mouse := 0.1
+@export var pilot_relative_flight_mouse := 0.1
 ##How fast throttle should increment. this is of course internally switched for keyboard or mouse. NOTE: don't use this for ships
-@export var assist_throttle_increment_setting := speedpreset.quick
+@export var pilot_assist_throttle_increment_setting := speedpreset.quick
 ##throttle increment speed in float. Use for ship settings.
-@onready var assist_throttle_increment : float = increments[assist_throttle_increment_setting]
+@onready var pilot_assist_throttle_increment : float = increments[pilot_assist_throttle_increment_setting]
 
 ##Piloting, driving? Turn this on to prevent the player from moving.
-var is_active := true
-var was_active := true
+var player_is_active := true
+var player_was_active := true
 
 ##I think you know what this is
 func _ready() -> void:
@@ -115,42 +132,45 @@ func _ready() -> void:
 	
 	for x in range(6):
 		#default target vectors for reparent vectors.
-		reparent_casts_defs.append(reparent_casts[x].target_position)
+		reparent_casts_defs.append(Reparent_casts[x].target_position)
 	for x in [$Collision,$Meshpivot,$horirotation,$deb]:
 		height_adjustables.append(x)
 	height_adjust(false)
 	await get_tree().create_timer(3.0).timeout
 	Context_shader_toggle()
+
 ##I think you know what this is
 func _physics_process(delta: float) -> void:
 
-	frame_count += 1
+	current_frame_count += 1
 	if recalibrate:
 		reparent_recalibrate(delta)
 	elif target_object:
 		global_rotation = target_object.global_rotation
-		
-	if !is_active:
-		for x in reparent_casts:
+	
+	#disable player raycasts for performance when inactive
+	if !player_is_active:
+		for x in Reparent_casts:
 			x.enabled = false
-		reparent_casts[0].process_mode = Node.PROCESS_MODE_DISABLED
+		Reparent_casts[0].process_mode = Node.PROCESS_MODE_DISABLED
 		GCheckRay.process_mode = Node.PROCESS_MODE_DISABLED
-		was_active = is_active
+		player_was_active = player_is_active
 		height_adjust(false)
 		return
-	elif is_active and !was_active:
-		for x in reparent_casts:
+	#reactivate...
+	elif player_is_active and !player_was_active:
+		for x in Reparent_casts:
 			x.enabled = true
-		reparent_casts[0].process_mode = Node.PROCESS_MODE_PAUSABLE
+		Reparent_casts[0].process_mode = Node.PROCESS_MODE_PAUSABLE
 		GCheckRay.process_mode = Node.PROCESS_MODE_PAUSABLE
-		was_active = is_active
+		player_was_active = player_is_active
 	
 	#recalibration
 	
 	#reorient relative to "parent"
 	
 	
-	#movement
+	#local lateral movement
 	up_dir_calibrate()
 	if spacestate == spacestates.grounded and in_atmosphere:
 		grounded_movement(delta)
@@ -158,14 +178,14 @@ func _physics_process(delta: float) -> void:
 		atmos_movement(delta)
 	
 	#gravity and jumping
-	if is_on_floor() and plat_jumped:
-		plat_jumped = false
+	#if is_on_floor() and plat_jumped:
+		#plat_jumped = false
 	#jump
 	if Input.is_action_just_pressed("jump") and is_on_floor():
 		velocity += -current_gravity_dir * JUMP_VELOCITY
-		if target_object:
-			plat_jumped = true
-			plat_relative_pos = target_object.to_local(position)
+		#if target_object:
+			#plat_jumped = true
+			#plat_relative_pos = target_object.to_local(position)
 	
 	if Input.is_action_pressed("crouch"):
 		height_adjust(true)
@@ -180,24 +200,24 @@ func _physics_process(delta: float) -> void:
 	#off groun
 	
 	if is_on_floor():
-		time_airborne = 0
+		current_time_airborne = 0
 		spacestate = spacestates.grounded
 	#gravity and detecting if the player has been airborne for more than 120 frames
 	if !is_on_floor() and in_atmosphere:
-		time_airborne += 1
+		current_time_airborne += 1
 		if target_object:
 			velocity += current_gravity_dir * current_gravity * delta * 1.5
 			##NOTE: depracated
-			if plat_jumped:
-				var _global_position := target_object.to_global(plat_relative_pos)
-				var intmvmt := velocity * delta
-				var new_global : Vector3 = _global_position + intmvmt
-				plat_relative_pos = target_object.to_local(new_global)
-				
-				position = new_global
+			#if plat_jumped:
+				#var _global_position := target_object.to_global(plat_relative_pos)
+				#var intmvmt := velocity * delta
+				#var new_global : Vector3 = _global_position + intmvmt
+				#plat_relative_pos = target_object.to_local(new_global)
+				#
+				#position = new_global
 		else:
 			velocity += get_gravity() * delta
-		if time_airborne > 120 and target_type != targetstates.ship:
+		if current_time_airborne > 120 and target_type != targetstates.ship:
 			spacestate = spacestates.airborne
 	##pre move and slide. it will always be equal to zero, but for good measure i prefer still memorizing it.
 	var pre_move_and_slide_position : Vector3 = global_position
@@ -227,10 +247,11 @@ func up_dir_calibrate() -> void:
 		
 ##Handles reparenting orientation
 func reparent_recalibrate(delta: float):
-	plat_jumped = false
+	#plat_jumped = false
 	recalibrate_progress = min(recalibrate_progress + delta, 0.5)
 	var eased_progress := recalibrate_progress * recalibrate_progress * (3.0 - 2.0 * recalibrate_progress)
-	var pivot_global_y : float = pivot.global_rotation.y
+	##Variable exists because rotation will be affected during recalibration. this conserves the original angle.
+	var pivot_global_y : float = Horizontal_pivot.global_rotation.y
 	##NOTE: Please don't remove this for stability reasons.
 	if global_basis.y.dot(target_object.global_basis.y) <= 0:
 		await get_tree().physics_frame
@@ -239,8 +260,8 @@ func reparent_recalibrate(delta: float):
 	
 	global_basis = Basis(global_basis.get_rotation_quaternion().slerp(target_object.global_basis.get_rotation_quaternion(),eased_progress))
 	if recalibrate_pivot_correction:
-		pivot.global_rotation.y = pivot_global_y
-		pivot.rotation = Vector3(0,pivot.rotation.y, 0)
+		Horizontal_pivot.global_rotation.y = pivot_global_y
+		Horizontal_pivot.rotation = Vector3(0,Horizontal_pivot.rotation.y, 0)
 	##Finish
 	if recalibrate_progress >= 0.5:
 		
@@ -253,7 +274,8 @@ func atmos_movement(delta: float):
 	var direction : Vector3
 	var input_dir := -Input.get_vector("back", "forward","left","right")
 	#note: directions reversed because it only works that way for some reason
-	direction = Vector3(input_dir.x, Input.get_axis("jump", "crouch"), input_dir.y).normalized() * omnipivot.global_basis.inverse() * -1
+	direction = Vector3(input_dir.x, Input.get_axis("jump", "crouch"), input_dir.y).normalized() * Vertical_pivot.global_basis.inverse() * -1
+	#1: move in direction unless speed over 50. otherwise lose velocity until reaching 50. if there is no input, decay velocity.
 	if direction and velocity.length() <= 50:
 		velocity += direction * delta * ACCEL * 0.6
 	elif velocity.length() > 50:
@@ -267,18 +289,18 @@ func grounded_movement(delta: float) -> void:
 	var input_dir := Input.get_vector("back", "forward","right","left")
 	var _SPEED : float = SPEED *( Input.get_axis("crouch","sprint") * 0.5 + 1 )
 	var _ACCEL : float = SPEED *(Input.get_axis("crouch","sprint") * 0.2 + 1)
-	#get rotated direction with basises
+	#direction of movement is build based on if target object: its rotation and player's rotation, or else just the players' alone.
 	if target_object:
-		var forward = -pivot.global_basis.z
-		var right = pivot.global_basis.x
+		var forward = -Horizontal_pivot.global_basis.z
+		var right = Horizontal_pivot.global_basis.x
 	
 		var platform_up = target_object.global_basis.y
 		forward = (forward - platform_up * forward.dot(platform_up)).normalized()
 		right = (right - platform_up * right.dot(platform_up)).normalized()
 		direction = Vector3((forward * input_dir.y + right * input_dir.x)).normalized()
 	else:
-		direction = Vector3(pivot.global_basis * Vector3(input_dir.x, 0, -input_dir.y)).normalized()
-	#apply movement
+		direction = Vector3(Horizontal_pivot.global_basis * Vector3(input_dir.x, 0, -input_dir.y)).normalized()
+	#1: apply movement normally. 2: decay quickly to 0 when no input. 3:airborne low influence movemen
 	if direction and is_on_floor():
 		if velocity.length() <= SPEED:
 			velocity = velocity.move_toward(direction * _SPEED, delta * ACCEL)
@@ -286,23 +308,24 @@ func grounded_movement(delta: float) -> void:
 			velocity = velocity.move_toward(direction * _SPEED * 0.95, delta * ACCEL)
 	elif !direction and is_on_floor():
 		velocity = velocity.move_toward(Vector3.ZERO, 15 * delta)
-		
 	else:
-		velocity = velocity.move_toward(direction * _SPEED, atmos_density * delta * 2.0)
+		velocity = velocity.move_toward(direction * _SPEED, current_atmospheric_density * delta * 2.0)
 ##handles height adjustment and crouching. TODO: smooth it out.
 func height_adjust(do_crouch: bool = true):
 	##TODO: Smooth out crouching.
 	var shape : CapsuleShape3D = Collision_Capsule.get_shape()
+	#1:crouch and reduce height 2: reset
 	if do_crouch:
 		#print("adjusting crouch...")
 		shape.set_height(HEIGHT / 2)
 		current_height = HEIGHT / 2
 		shape.set_radius(player_radius * 1.3)
-		
+	
 	else:
 		shape.set_height(HEIGHT)
 		current_height = HEIGHT
 		shape.set_radius(player_radius)
+	#adjust all heigh dependent objects
 	for x:Node3D in height_adjustables:
 		x.position.y = current_height / 2
 	#print("offsetting adjustables by ", current_height / 2)
@@ -314,17 +337,18 @@ func static_player_moving_world_adjust(delta: Vector3):
 ##mouse controls and misc.
 func _unhandled_input(event: InputEvent) -> void:
 	if event is InputEventMouseMotion:
-		if !is_pilot:
+		if !player_is_pilot:
+			#1:regular mouse 2: context menu mouse
 			if !is_in_context_menu and Input.mouse_mode == Input.MOUSE_MODE_CAPTURED:
-				pivot.rotation.y -= event.relative.x * SENSITIVITY
-				omnipivot.rotation.z -= event.relative.y * SENSITIVITY
-				omnipivot.rotation.z = clamp(omnipivot.rotation.z,-PI * 0.35, PI * 0.35)
+				Horizontal_pivot.rotation.y -= event.relative.x * MOUSE_SENSITIVITY
+				Vertical_pivot.rotation.z -= event.relative.y * MOUSE_SENSITIVITY
+				Vertical_pivot.rotation.z = clamp(Vertical_pivot.rotation.z,-PI * 0.35, PI * 0.35)
 			elif is_in_context_menu:
 				if !contiming.is_stopped():
 					return
-				pivot.rotation.y = lerp(pivot.rotation.y,pivot.rotation.y - event.relative.x * SENSITIVITY, 0.1)
-				omnipivot.rotation.z = lerp(omnipivot.rotation.z, omnipivot.rotation.z - event.relative.y * SENSITIVITY, 0.1)
-				omnipivot.rotation.z = clamp(omnipivot.rotation.z,-PI * 0.35, PI * 0.35)
+				Horizontal_pivot.rotation.y = lerp(Horizontal_pivot.rotation.y,Horizontal_pivot.rotation.y - event.relative.x * MOUSE_SENSITIVITY, 0.1)
+				Vertical_pivot.rotation.z = lerp(Vertical_pivot.rotation.z, Vertical_pivot.rotation.z - event.relative.y * MOUSE_SENSITIVITY, 0.1)
+				Vertical_pivot.rotation.z = clamp(Vertical_pivot.rotation.z,-PI * 0.35, PI * 0.35)
 	if event is InputEventMouseButton and !is_in_context_menu:
 		Input.mouse_mode = Input.MOUSE_MODE_CAPTURED
 ##misc input
@@ -332,18 +356,18 @@ func _input(event: InputEvent) -> void:
 	if event.is_action_pressed("ui_end"):
 		get_tree().quit()
 		
-	if Input.is_action_just_pressed("Context_Menu_Activate"):
+	if event.is_action_pressed("Context_Menu_Activate"):
 		Input.mouse_mode = Input.MOUSE_MODE_CONFINED
 		await get_tree().process_frame
 		Input.warp_mouse(get_viewport().get_visible_rect().size / 2)
 		is_in_context_menu = true
 		contiming.start()
 		Context_shader_toggle()
-	elif Input.is_action_just_released("Context_Menu_Activate"):
+	elif event.is_action_released("Context_Menu_Activate"):
 		is_in_context_menu = false
 		Input.mouse_mode = (Input.MOUSE_MODE_CAPTURED)
 		Context_shader_toggle()
-		if is_pilot:
+		if player_is_pilot:
 			target_object_parent.call_deferred("reset_mouse")
 ##handles if the target_object is lost due to a time-out
 func _on_ray_cast_3d_parent_lost() -> void:
@@ -371,15 +395,15 @@ func _on_ray_cast_3d_reparent(guest: Node3D) -> void:
 ##Shrinks reparent raycasts when on a ship.
 func raycast_resize():
 	if target_type == targetstates.ship:
-		for x: int in reparent_casts.size():
-			reparent_casts[x].target_position = reparent_casts_defs[x] / 2
+		for x: int in Reparent_casts.size():
+			Reparent_casts[x].target_position = reparent_casts_defs[x] / 2
 	else:
-		for x: int in reparent_casts.size():
-			reparent_casts[x].target_position = reparent_casts_defs[x]
+		for x: int in Reparent_casts.size():
+			Reparent_casts[x].target_position = reparent_casts_defs[x]
 ##checks for ship compatibility when swapping target_object. requires arg1
 func target_object_swap(new_target: Node3D):
 	var _velocity : Vector3
-	##check if the new and old parent are related. If so, same ship.
+	#check if the new and old parent are related. If so, same ship.
 	if new_target.is_in_group("Ship"):
 		if new_target.The_Captain == target_object_parent:
 			print("new target is same ship!")
@@ -389,7 +413,7 @@ func target_object_swap(new_target: Node3D):
 			target_object.call("child_announcement", self, true)
 			call_deferred("get_ambience", false)
 			return
-	
+	#deparent from ship
 	if target_object:
 		if target_type == targetstates.ship:
 			_velocity = target_object_ship_disembark()
@@ -409,7 +433,7 @@ func target_object_swap(new_target: Node3D):
 ##IT'S PERFECT JUST THE WAY IT IS
 func target_object_ship_disembark() -> Vector3:
 	print("initiating ship disembark...")
-	transition_frame = true
+	recalibrate_transition_frame = true
 	
 	var player_world_position := global_position
 	var ship_velocity = target_object_parent.linear_velocity
@@ -440,7 +464,7 @@ func target_object_ship_disembark() -> Vector3:
 	return ship_velocity
 ##DO NOT TOUCH IT
 func target_object_ship_board() -> void:
-	transition_frame = true
+	recalibrate_transition_frame = true
 
 	target_object_parent = target_object.The_Captain
 	target_type = targetstates.ship
@@ -454,7 +478,7 @@ func target_object_ship_board() -> void:
 	target_object.call("child_announcement", self, true)
 	call_deferred("get_ambience", false)
 	raycast_resize()
-	static_player_moving_world_adjust(Vector3.ZERO)
+	#static_player_moving_world_adjust(Vector3.ZERO)
 	pass
 ##DO NOT TOUCH IT...
 func target_object_misc_enter() -> void:
@@ -479,7 +503,7 @@ func get_ambience(is_removing: bool = false):
 	if is_removing:
 		#remove from any ambience node the specified audio.
 		#print("initiating ambience removal.")
-		for x : AudioStreamPlayer in [audio_ambient_player_1, audio_ambient_player_2]:
+		for x : AudioStreamPlayer in [Audio_ambient_player_1, Audio_ambient_player_2]:
 			if x.stream == received_ambience:
 				#print("removed ambience.")
 				audio_fade_out(x)
@@ -488,7 +512,7 @@ func get_ambience(is_removing: bool = false):
 	else:
 		# Assign to a free ambience node the received ambience.
 		#print("initiating ambience assignment.")
-		for x : AudioStreamPlayer in [audio_ambient_player_1, audio_ambient_player_2]:
+		for x : AudioStreamPlayer in [Audio_ambient_player_1, Audio_ambient_player_2]:
 			if x.stream:
 				#print("failed to assign to ", x.name)
 				continue
@@ -504,7 +528,7 @@ func audio_fade_in(Player: AudioStreamPlayer,ambience_vol:= 0.0, fade_duration:=
 		Audio_Tweens[Player].kill()
 	
 	Player.set_deferred("volume_db", -80.0)
-	Player.play(ambience_progress)
+	Player.play(audio_ambience_progress)
 	#print("beginning audio fade-in, time is: ", fade_duration)
 	var tween := create_tween()
 	tween.set_ease(Tween.EASE_IN)
@@ -517,7 +541,7 @@ func audio_fade_out(Player: AudioStreamPlayer, fade_duration:= 3.0):
 	var tween :Tween= create_tween()
 	print("fading out...")
 	#print("beginning audio fade-out, time is: ", fade_duration)
-	ambience_progress = Player.get_playback_position()
+	audio_ambience_progress = Player.get_playback_position()
 	tween.set_ease(Tween.EASE_OUT)
 	tween.tween_property(Player, "volume_db", -80.0, fade_duration)
 	tween.tween_callback(func():
@@ -529,31 +553,31 @@ func audio_fade_out(Player: AudioStreamPlayer, fade_duration:= 3.0):
 func Context_shader_toggle():
 	
 	if is_in_context_menu:
-		if ShaderTween:
-			ShaderTween.kill()
-		ShaderTween = create_tween()
-		ShaderTween.set_ease(Tween.EASE_IN)
-		ShaderTween.set_trans(Tween.TRANS_CIRC)
-		ShaderTween.tween_property(Context_shader,  "shader_parameter/opacity", 1.0, 0.1)
-		ShaderTween.parallel()
-		ShaderTween.tween_property(Context_shader, "shader_parameter/thickness", CShader_outline_thickness_def, 0)
+		if Context_ShaderTween:
+			Context_ShaderTween.kill()
+		Context_ShaderTween = create_tween()
+		Context_ShaderTween.set_ease(Tween.EASE_IN)
+		Context_ShaderTween.set_trans(Tween.TRANS_CIRC)
+		Context_ShaderTween.tween_property(Context_shader,  "shader_parameter/opacity", 1.0, 0.1)
+		Context_ShaderTween.parallel()
+		Context_ShaderTween.tween_property(Context_shader, "shader_parameter/thickness", context_shader_outline_thickness_def, 0)
 	else:
-		if ShaderTween:
-			ShaderTween.kill()
-		ShaderTween = create_tween()
-		ShaderTween.set_ease(Tween.EASE_IN)
-		ShaderTween.set_trans(Tween.TRANS_CUBIC)
-		ShaderTween.tween_property(Context_shader, "shader_parameter/opacity", 0.0, 0.3)
-		ShaderTween.parallel()
-		ShaderTween.tween_property(Context_shader, "shader_parameter/thickness", 0, 0.3)
+		if Context_ShaderTween:
+			Context_ShaderTween.kill()
+		Context_ShaderTween = create_tween()
+		Context_ShaderTween.set_ease(Tween.EASE_IN)
+		Context_ShaderTween.set_trans(Tween.TRANS_CUBIC)
+		Context_ShaderTween.tween_property(Context_shader, "shader_parameter/opacity", 0.0, 0.3)
+		Context_ShaderTween.parallel()
+		Context_ShaderTween.tween_property(Context_shader, "shader_parameter/thickness", 0, 0.3)
 ##When starting to pilot a ship, this variable puts you in the mode.
 func pilot_activation(is_disabling: bool):
 	if is_disabling:
-		is_active = true
-		is_pilot = false
+		player_is_active = true
+		player_is_pilot = false
 		set_process_unhandled_input(true)
 		return
-	is_active = false
-	is_pilot = true
+	player_is_active = false
+	player_is_pilot = true
 	set_process_unhandled_input(false)
 	height_adjust(false)
