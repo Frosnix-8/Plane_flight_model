@@ -1,5 +1,8 @@
 extends MeshInstance3D
 
+signal button_clicked(current_state: bool)
+
+
 #unless chosen otherwise, this shader is identical to all other users of it.
 ##NOTE: if you make this shader an instance, you must code its activation when The context menu button is pressed.
 ##The Global outline shader is already handled by the player's code.
@@ -28,31 +31,30 @@ var tween2 : Tween #opacity of highlight
 var tween3 : Tween #color of highlight
 
 
-
-var active := false
+@export var is_pressable := true
+@export var active := false
 
 func _ready() -> void:
 	outline_thickness_def = outline.get_shader_parameter("thickness")
 	highlight_color_def[0] = get_instance_shader_parameter("highlight_color")
 	highlight_color_def[1] = get_instance_shader_parameter("click_color")
-func _physics_process(delta: float) -> void:
+func _physics_process(_delta: float) -> void:
 	if global_position.length() >= Interact_distance * 2.0:
-		click_check.process_mode = Node.PROCESS_MODE_DISABLED
+		click_check.monitoring = false
 	else:
-		click_check.process_mode = Node.PROCESS_MODE_PAUSABLE
-	if active:
-		rotation.y += 1 * delta
+		click_check.monitoring = true
 	if is_too_far:
 		shader_tween_method(tween2, "opacity2", get_instance_shader_parameter("opacity2"), 0.0, 0.1)
 		mouse_on_obj = false
 func _input(_event: InputEvent) -> void:
+	#Removes all highlight effects when releasing shader.
 	if Input.is_action_just_released("Context_Menu_Activate"):
 		if tween2:
 			shader_tween_method(tween2, "opacity2", get_instance_shader_parameter("opacity2"), 0.0, 0.1)
 		set_instance_shader_parameter("hightlight_color", highlight_color_def[1])
 		shader_tween_method(tween3, "highlight_color", get_instance_shader_parameter("highlight_color"), highlight_color_def[0], 0.3)
 func on_mouse_exited() -> void:
-	#tween2
+	#removes highlight on mouse exit
 	shader_tween_method(tween2, "opacity2", get_instance_shader_parameter("opacity2"),0.0,0.1)
 	mouse_on_obj = false
 func _input_event(_camera: Node, event: InputEvent, _event_position: Vector3, _normal: Vector3, _shape_idx: int) -> void:
@@ -63,19 +65,24 @@ func _input_event(_camera: Node, event: InputEvent, _event_position: Vector3, _n
 	##PUT YOUR STUFF HERE FOR BUTTONS
 	if event is InputEventMouseButton:
 		if event.is_pressed() and !is_too_far:
+			active = !active
+			#highlight white for click
 			set_instance_shader_parameter("highlight_color", highlight_color_def[1])
 			#All audio or click-related actions are to put here.
 			$AudioStreamPlayer3D.play()
 			
 			
-			rotate_cube()
+			button_clicked.emit(active)
+			
 			
 			
 			
 		else:
+			#ease out of white.
 			shader_tween_method(tween3, "highlight_color", get_instance_shader_parameter("highlight_color"), highlight_color_def[0], 0.05, false, Tween.EASE_OUT)
 			
 	if event is InputEventMouseMotion and !is_too_far and !mouse_on_obj:
+		#highlights object when hovered
 		if !tween2 or !tween2.is_running(): 
 			tween2 = create_tween()
 			tween2.tween_method(func(x: float): set_instance_shader_parameter("opacity2", x), get_instance_shader_parameter("opacity2"), 0.3, 0.1)
@@ -84,9 +91,7 @@ func _input_event(_camera: Node, event: InputEvent, _event_position: Vector3, _n
 			
 var tween : Tween
 
-func rotate_cube():
-	active = !active
-	return
+
 ##for cleanliness reasons, simplifies shader modifications.
 func shader_tween_method(target_tween: Tween, property: String, from, to, duration : float, do_parallel: bool = false, _ease : Tween.EaseType = Tween.EASE_IN, trans : Tween.TransitionType = Tween.TRANS_LINEAR, kill_previous: bool = true, is_global: bool = false, shader: Shader = null):
 	if kill_previous and target_tween:

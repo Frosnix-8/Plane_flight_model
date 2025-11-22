@@ -69,8 +69,10 @@ var crash_G : float = 50.0
 @export var atmospheric_density := 1.0
 ##Lift surface of strength of the ship relative to mass.
 @export var atmospheric_lift : float = 50.0
-
-
+##Drag coefficient on X_Y_Z axes
+@export var atmospheric_drag_coefficients := Vector3(0.02,1.05,0.7)
+##Reference area on X Y Z axes
+@export var atmospheric_reference_area := Vector3(36, 210,90)
 
 #FLIGHT VARIABLES
 
@@ -116,7 +118,10 @@ var current_assist_throttle_increment : float
 var current_player_camera
 #player related variants.
 var is_target := false
+##whether there is a player in the pilot seat.
 var piloted := false
+##whether the player has activated the ship.
+var is_activated := false
 ##ALERT: switch to array when adding multiplayer?
 var Child: CharacterBody3D
 ##ALERT: how will multiple players handle this?
@@ -130,6 +135,8 @@ var input_queued := false
 @onready var audiothread := Thread.new()
 @onready var audiomut := Mutex.new()
 @onready var proc_audio = $TMP_Audio
+
+#UI_FLAGS
 
 
 #FLAGS
@@ -161,19 +168,18 @@ func _physics_process(delta: float) -> void:
 	#print(angular_velocity)
 	#print("Piloting: ", self.name, " | Interior.Current_Pilot = ", Interior.Current_Pilot)a
 	if atmospheric_density:
-		#apply_central_force(thrust_gravity_offset * clamp((basis.inverse() * linear_velocity).x * atmospheric_density/max_lift_speed, 0, 1))
+		calculate_drag()
 		calculate_atmospheric_lift()
 	frametime += 1
 	#print(Interior.Current_Pilot, " ",self)
-	if piloted:
+	if is_activated:
 		linear_damp = 0.0
-		
+		angular_damp = 0.0
 		#print(direction)
 		var rotation_torque : Vector3 = calculate_ship_rotation() 
 		
 		calculate_g_force(delta)
 		apply_torque(basis* rotation_torque)
-		#print(rotation_torque)
 		
 		calculate_ship_linear_velocity()
 		if frametime % 3 == 0:
@@ -183,7 +189,8 @@ func _physics_process(delta: float) -> void:
 		flight_mouse_depreciation(delta)
 		#print("lift strength is at: ", clamp(linear_velocity.length()/max_lift_speed, 0, 1) * 100, "%")
 	else:
-		linear_damp = 0.2
+		linear_damp = 0.05
+		angular_damp = 0.05
 		return
 	
 	previous_velocity = linear_velocity
@@ -220,8 +227,22 @@ func calculate_max_speed() -> void:
 	
 ##Calculates "drag", as in how fast the ship will shed velocity. NOTE: this is not direction dependent.
 func calculate_drag() -> void:
+	##NOTE TODO: temporary
+	var temp := 293.15
+	var R := 8.31446261815324 / 0.0289652
+	var pressure := atmospheric_density * 101300.0
+	var local_linear := (basis.inverse() * linear_velocity)
+	var density := (pressure) / (temp * R)
+	#print(density)
+	var drag_direction : Vector3 = basis * (local_linear.normalized()) * atmospheric_drag_coefficients
+	var refrea : Vector3
+	for x : int in range(3):
+		refrea[x] = local_linear.normalized()[x] * atmospheric_reference_area[x]
+	var drag : Vector3 = -drag_direction * density * (linear_velocity.length() * linear_velocity.length())* 0.5 * 30
+	apply_central_force(drag)
+	print("current drag is : ",basis.inverse() * drag)
 	
-	return 
+
 ##Calculates atmospheric density in atmospheres at any given moment.
 func calculate_atmospheric_density() -> void:
 	##TODO: complete this.
@@ -307,7 +328,7 @@ func calculate_atmospheric_lift_coefficient(aoa_degrees: float, slip_angle : flo
 		var slip_ratio: float = (slip_angle - max_safe_slip) / max_safe_slip
 		slip_penalty = 1.0 - slip_ratio * 0.7  # Drop to 0.3
 	else:
-		print("SLIP")
+		#print("SLIP")
 		FLAG_stall = true
 		# Catastrophic
 		slip_penalty = max(0.05, 0.3 - ((slip_angle - critical_slip) / 20.0))
@@ -543,7 +564,6 @@ func axial_flight_assist(axp: Vector3, axl : Vector3) -> Vector3:
 
 	return correction
 
-	
 ##Calculates linear flight assist variables to return to target movement speed while removing lateral velocity. NOTE: target speed not implemented.
 ##flight assist will for now, only set the player back to standstill.
 func linear_flight_assist() -> Vector3:
@@ -676,7 +696,7 @@ func TEMP_audio():
 				phase -= 1.0
 
 func _exit_tree() -> void:
-	
+	#finish audio thread
 	if piloted:
 		pilot_activation(true)
 	audiomut.lock()

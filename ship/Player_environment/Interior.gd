@@ -9,6 +9,8 @@ var fcount := 0
 @onready var The_Captain: RigidBody3D = get_node("../ship")
 ##Whether the ship is being piloted.
 var piloted := false
+##Wehter the ship has been activated by the pilot.
+var is_activated := false
 @onready var Pilot_Seat : Node3D= $Seating
 @onready var Pilot_cam : Camera3D= $Seating/Pilotcam
 @onready var Pilot_campos : Node3D= $Seating/PilotCamNode
@@ -132,3 +134,8 @@ func pilot_toggle(Pilot: CharacterBody3D, is_current_Pilot : bool = false) -> vo
 			finished_tween = true
 		)
 		
+
+
+func _on_ship_activation(current_state: bool) -> void:
+	is_activated = current_state
+	The_Captain.is_activated = current_state

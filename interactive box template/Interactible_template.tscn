@@ -1,7 +1,7 @@
 [gd_scene load_steps=8 format=3 uid="uid://caqatjh1rb45x"]
 
 [ext_resource type="Material" uid="uid://q0j0rwrbioc4" path="res://Highlight_shader/Variable_outliner.tres" id="1_vxtiq"]
-[ext_resource type="Script" uid="uid://cq6ovj87exhq2" path="res://interactive box template/highlight_test_template.gd" id="2_5yvhk"]
+[ext_resource type="Script" uid="uid://cq6ovj87exhq2" path="res://interactive box template/Button_Press.gd" id="2_5yvhk"]
 [ext_resource type="AudioStream" uid="uid://c4xguguraspx6" path="res://misc sounds/small_click.wav" id="3_5yvhk"]
 
 [sub_resource type="StandardMaterial3D" id="StandardMaterial3D_bt33l"]

@@ -2,9 +2,13 @@ extends CharacterBody3D
 
 signal fail_recalibrate
 #depracated: signal parent_call(is_depracated: bool, host: CharacterBody3D)
+##Is the player in one of these states?
 enum spacestates {grounded, airborne, spaceborne}
+##Type of target objects
 enum targetstates {none, ship, misc}
+##Axe of rotation of keyed axis
 enum keyedrotaxes {pitch, roll, yaw}
+##Speed presets for throttles.
 enum speedpreset {very_slow, slow, medium, quick, fast, very_fast, binary}#1.0, 5.0, 10.0, 12.5, 33.34, 50.0, 100.0
 const increments :Array = [1.0, 5.0,10.0,12.5, 33.34, 50.0, 100.0]
 #const assist_throttle_increment : Dictionary = {"1": 1.0, "5": 5.0, "10": 10.0, "12.5": 12.5, "1/3": 33.34, "50": 50.0, "Binary": 100.0}

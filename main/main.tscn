@@ -1,4 +1,4 @@
-[gd_scene load_steps=15 format=3 uid="uid://cyq0kfigmqcij"]
+[gd_scene load_steps=12 format=3 uid="uid://cyq0kfigmqcij"]
 
 [ext_resource type="Script" uid="uid://cdmu712hotest" path="res://main/main.gd" id="1_h2yge"]
 [ext_resource type="PackedScene" uid="uid://b2gej66e63mk4" path="res://player.tscn" id="2_0xm2m"]
@@ -31,21 +31,6 @@ tonemap_mode = 2
 sdfgi_cascades = 6
 volumetric_fog_albedo = Color(0.45840502, 0.45840508, 0.45840502, 1)
 
-[sub_resource type="ViewportTexture" id="ViewportTexture_c5vmd"]
-viewport_path = NodePath("SubViewport")
-
-[sub_resource type="StandardMaterial3D" id="StandardMaterial3D_tsk1t"]
-resource_local_to_scene = true
-albedo_color = Color(0, 0, 0, 1)
-roughness = 0.0
-emission_enabled = true
-emission_texture = SubResource("ViewportTexture_c5vmd")
-
-[sub_resource type="QuadMesh" id="QuadMesh_nr4tf"]
-resource_local_to_scene = true
-material = SubResource("StandardMaterial3D_tsk1t")
-size = Vector2(1.6, 1)
-
 [node name="Node3D" type="Node3D"]
 script = ExtResource("1_h2yge")
 
@@ -56,16 +41,16 @@ JUMP_VELOCITY = 7.0
 [node name="environment" type="Node3D" parent="."]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, -0.31683207, 0)
 
-[node name="MeshInstance3D" type="MeshInstance3D" parent="environment"]
+[node name="The_Ground" type="MeshInstance3D" parent="environment"]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -9.654264, 0, -14.902775)
 layers = 5
 mesh = SubResource("PlaneMesh_h2yge")
 skeleton = NodePath("../..")
 
-[node name="StaticBody3D" type="StaticBody3D" parent="environment/MeshInstance3D"]
+[node name="StaticBody3D" type="StaticBody3D" parent="environment/The_Ground"]
 collision_layer = 7
 
-[node name="CollisionShape3D" type="CollisionShape3D" parent="environment/MeshInstance3D/StaticBody3D"]
+[node name="CollisionShape3D" type="CollisionShape3D" parent="environment/The_Ground/StaticBody3D"]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, -5, 0)
 shape = SubResource("BoxShape3D_kfbq2")
 
@@ -87,9 +72,6 @@ transform = Transform3D(1, 0, 0, 0, 1.0000001, 0, 0, 0, 1.0000002, -0.91760445, 
 max_degree_atmospheric_axial_speed = Vector3(200, 50, 90)
 max_atmospheric_regular_speed = 300.0
 max_atmospheric_speed = 450.0
-
-[node name="MeshInstance3D" parent="environment/main ship/interior" index="6"]
-mesh = SubResource("QuadMesh_nr4tf")
 
 [node name="MeshInstance3D3" parent="environment" instance=ExtResource("5_lquwl")]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 5, 2.5002115, -1)

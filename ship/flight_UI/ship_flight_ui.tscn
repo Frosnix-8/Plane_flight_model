@@ -2,8 +2,7 @@
 
 [ext_resource type="Script" uid="uid://byxs5xg7dvq5f" path="res://ship/flight_UI/ship_flight_ui_control_main.gd" id="1_xfd3d"]
 
-[node name="Control" type="Control"]
-custom_minimum_size = Vector2(512, 360)
+[node name="UI_control_main" type="Control"]
 layout_mode = 3
 anchors_preset = 15
 anchor_right = 1.0
@@ -15,7 +14,7 @@ grow_vertical = 2
 script = ExtResource("1_xfd3d")
 metadata/_edit_use_anchors_ = true
 
-[node name="Container" type="Control" parent="."]
+[node name="welcome" type="Control" parent="."]
 layout_mode = 1
 anchors_preset = 15
 anchor_right = 1.0
@@ -23,34 +22,118 @@ anchor_bottom = 1.0
 grow_horizontal = 2
 grow_vertical = 2
 
-[node name="Label" type="Label" parent="Container"]
-layout_mode = 0
-anchor_right = 1.0
+[node name="Specs" type="Label" parent="welcome"]
+layout_mode = 1
+anchors_preset = 2
+anchor_top = 1.0
 anchor_bottom = 1.0
-offset_bottom = -288.0
+offset_top = -14.0
+offset_right = 154.0
+grow_vertical = 0
+theme_override_colors/font_color = Color(1, 1, 1, 1)
+theme_override_colors/font_outline_color = Color(0, 0, 0, 1)
+theme_override_font_sizes/font_size = 10
+text = "GOS.1.0.0 D25/10/2000 @ 0600H"
+vertical_alignment = 2
+
+[node name="welcome_timer" type="Timer" parent="welcome"]
+
+[node name="Panel" type="Panel" parent="welcome"]
+layout_mode = 1
+anchors_preset = -1
+anchor_right = 1.0
+anchor_bottom = 0.9879483
+offset_top = 10.0
+offset_bottom = -10.661377
 grow_horizontal = 2
 grow_vertical = 2
+metadata/_edit_use_anchors_ = true
+
+[node name="Welcomesign" type="Label" parent="welcome/Panel"]
+layout_mode = 1
+anchors_preset = 5
+anchor_left = 0.5
+anchor_right = 0.5
+offset_left = -247.08995
+offset_top = 0.4021225
+offset_right = 219.91006
+offset_bottom = 84.40212
+grow_horizontal = 2
 theme_override_colors/font_color = Color(1, 1, 1, 1)
 theme_override_colors/font_outline_color = Color(0, 0, 0, 1)
 theme_override_font_sizes/font_size = 50
-text = "WELCOME ABOARD:"
+text = "WELCOME ABOARD"
 horizontal_alignment = 1
+autowrap_mode = 2
 
-[node name="Button" type="Button" parent="Container"]
-layout_mode = 0
+[node name="Welcomesign2" type="Label" parent="welcome/Panel"]
+layout_mode = 1
+anchors_preset = 5
+anchor_left = 0.5
+anchor_right = 0.5
+offset_left = -247.08995
+offset_top = 65.714294
+offset_right = 219.91006
+offset_bottom = 281.7143
+grow_horizontal = 2
+theme_override_colors/font_color = Color(1, 1, 1, 1)
+theme_override_colors/font_outline_color = Color(0, 0, 0, 1)
+theme_override_font_sizes/font_size = 20
+text = "GEROTENG systems | RECOZU
+RCZ-GT Gurlap-Fride prototype X1
+
+The time is [CALIBRATION NEEDED].
+All systems FUNCTIONAL."
+horizontal_alignment = 1
+autowrap_mode = 2
+
+[node name="Button" type="Button" parent="welcome/Panel"]
+layout_mode = 1
+anchors_preset = 7
 anchor_left = 0.5
 anchor_top = 1.0
 anchor_right = 0.5
 anchor_bottom = 1.0
-offset_left = -49.0
-offset_top = -48.0
-offset_right = 49.0
+offset_left = -52.91005
+offset_top = -55.126984
+offset_right = 47.089966
+offset_bottom = -7.1269836
 grow_horizontal = 2
 grow_vertical = 0
 
-[node name="Label2" type="Label" parent="Container"]
-layout_mode = 0
-offset_left = 3.0
-offset_top = 82.0
-offset_right = 43.0
-offset_bottom = 105.0
+[node name="general" type="Control" parent="."]
+visible = false
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+
+[node name="VBoxContainer" type="VBoxContainer" parent="general"]
+layout_mode = 1
+anchors_preset = 4
+anchor_top = 0.5
+anchor_bottom = 0.5
+offset_left = 64.0
+offset_top = -116.0
+offset_right = 202.0
+offset_bottom = 18.0
+grow_vertical = 2
+theme_override_constants/separation = 4
+alignment = 1
+
+[node name="Atmospheric_label" type="Label" parent="general/VBoxContainer"]
+layout_mode = 2
+theme_override_font_sizes/font_size = 30
+text = "jsjsjsjsjsjs"
+
+[node name="Velocity_label" type="Label" parent="general/VBoxContainer"]
+layout_mode = 2
+theme_override_font_sizes/font_size = 30
+text = "jsjsjsjsjsjs"
+
+[node name="G_label" type="Label" parent="general/VBoxContainer"]
+layout_mode = 2
+theme_override_font_sizes/font_size = 30
+text = "jsjsjsjsjsjs"

@@ -6,7 +6,7 @@ var outliner : Shader = mesh.surface_get_material(0).next_pass.shader
 var highlight : ShaderMaterial = mesh.surface_get_material(0).next_pass.next_pass
 var highlighter : Shader = mesh.surface_get_material(0).next_pass.next_pass.shader
 @onready var click_check := $CollisionShape3D
-@onready var Interior := get_node("../")
+@onready var Interior := get_node("../../")
 var mouse_on_obj := false
 @export var Interact_distance := 2.9
 var outline_thickness_def := 0.0
@@ -16,6 +16,7 @@ var is_too_far := false
 var tween1 : Tween #opacity of ring
 var tween2 : Tween #opacity of highlight
 var tween3 : Tween #color of highlight
+
 
 var active := false
 
@@ -37,8 +38,8 @@ func on_mouse_exited() -> void:
 	#tween2
 	shader_tween_method(tween2, "opacity2", get_instance_shader_parameter("opacity2"),0.0,0.1)
 	mouse_on_obj = false
-func _input_event(_camera: Node, event: InputEvent, _event_position: Vector3, _normal: Vector3, _shape_idx: int) -> void:
-	if _camera.global_position.distance_to(_event_position) >= Interact_distance:
+func _input_event(camera: Node, event: InputEvent, _event_position: Vector3, _normal: Vector3, _shape_idx: int) -> void:
+	if camera.global_position.distance_to(_event_position) >= Interact_distance:
 		
 		is_too_far = true
 	else:
@@ -47,12 +48,12 @@ func _input_event(_camera: Node, event: InputEvent, _event_position: Vector3, _n
 		if event.is_pressed() and !is_too_far:
 			set_instance_shader_parameter("highlight_color", highlight_color_def[1])
 			
-			if _camera == get_node("../Seating/Pilotcam"):
+			if camera == get_node("../../Seating/Pilotcam"):
 				
 				Interior.pilot_toggle(null, true)
 				
 			else:
-				Interior.pilot_toggle(_camera.cam_player, false)
+				Interior.pilot_toggle(camera.cam_player, false)
 
 			$AudioStreamPlayer3D.play()
 			
