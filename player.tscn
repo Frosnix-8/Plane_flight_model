@@ -1,11 +1,12 @@
-[gd_scene load_steps=11 format=3 uid="uid://b2gej66e63mk4"]
+[gd_scene load_steps=13 format=3 uid="uid://b2gej66e63mk4"]
 
 [ext_resource type="Script" uid="uid://crobohh3y2xxx" path="res://Player/primary control/PlayerPrimaryScript.gd" id="1_4flbx"]
-[ext_resource type="Script" uid="uid://b0lm8olhrpqne" path="res://Player/reparenting/ray.gd" id="2_onrkg"]
+[ext_resource type="Script" uid="uid://b0lm8olhrpqne" path="res://Player/reparenting/reray.gd" id="2_onrkg"]
 [ext_resource type="Script" uid="uid://3fdwds102yoq" path="res://Player/reparenting/g_check_ray.gd" id="2_sweqy"]
-[ext_resource type="Script" uid="uid://4tml5i76lkms" path="res://Player/reparenting/ray_sub.gd" id="3_i3pqv"]
+[ext_resource type="Script" uid="uid://4tml5i76lkms" path="res://Player/reparenting/reray_sub.gd" id="3_i3pqv"]
 [ext_resource type="Material" uid="uid://xmjo2mp2pv3t" path="res://debugmat.tres" id="4_hqtel"]
 [ext_resource type="Script" uid="uid://bxmkx64ervm5w" path="res://Player/primary control/playercam.gd" id="5_fhl08"]
+[ext_resource type="Script" uid="uid://vrigcn0bjvf2" path="res://reparent_sphere.gd" id="6_1jxqw"]
 
 [sub_resource type="CapsuleShape3D" id="CapsuleShape3D_i3pqv"]
 radius = 0.4
@@ -17,6 +18,9 @@ height = 1.7
 material = SubResource("StandardMaterial3D_vtle1")
 radius = 0.4
 height = 1.7
+
+[sub_resource type="SphereShape3D" id="SphereShape3D_dw050"]
+radius = 1.5
 
 [sub_resource type="BoxMesh" id="BoxMesh_i3pqv"]
 material = ExtResource("4_hqtel")
@@ -100,6 +104,17 @@ transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 3.0376017e-05, 0.37235796, 0)
 transform = Transform3D(-4.371139e-08, 0, -1, 0, 1, 0, 1, 0, -4.371139e-08, 0.25433365, 0.4271003, 2.3841858e-07)
 current = true
 script = ExtResource("5_fhl08")
+
+[node name="CollisionShape3D" type="Area3D" parent="horirotation"]
+collision_layer = 0
+collision_mask = 2
+input_ray_pickable = false
+monitorable = false
+priority = -10
+script = ExtResource("6_1jxqw")
+
+[node name="CollisionShape3D" type="CollisionShape3D" parent="horirotation/CollisionShape3D"]
+shape = SubResource("SphereShape3D_dw050")
 
 [node name="deb" type="MeshInstance3D" parent="."]
 visible = false

@@ -137,3 +137,5 @@ text = "jsjsjsjsjsjs"
 layout_mode = 2
 theme_override_font_sizes/font_size = 30
 text = "jsjsjsjsjsjs"
+
+[connection signal="pressed" from="welcome/Panel/Button" to="." method="_on_welcome_pressed"]

@@ -72,7 +72,7 @@ var crash_G : float = 50.0
 ##Drag coefficient on X_Y_Z axes
 @export var atmospheric_drag_coefficients := Vector3(0.02,1.05,0.7)
 ##Reference area on X Y Z axes
-@export var atmospheric_reference_area := Vector3(36, 210,90)
+@export var atmospheric_reference_area := Vector3(10, 30 ,0)
 
 #FLIGHT VARIABLES
 
@@ -154,7 +154,7 @@ func _ready() -> void:
 
 	for x : int in range(60):
 		previous_G_forces.append(Vector3.ZERO)
-
+	
 	for x : int in range(3):
 		max_axial_speed[x] = deg_to_rad(max_degree_axial_speed[x])
 		max_atmospheric_axial_speed[x] = deg_to_rad(max_degree_atmospheric_axial_speed[x])
@@ -168,7 +168,8 @@ func _physics_process(delta: float) -> void:
 	#print(angular_velocity)
 	#print("Piloting: ", self.name, " | Interior.Current_Pilot = ", Interior.Current_Pilot)a
 	if atmospheric_density:
-		calculate_drag()
+		apply_central_force(thrust_gravity_offset * clamp(linear_velocity.length() / max_lift_speed,0,1))
+		calculate_ship_drag()
 		calculate_atmospheric_lift()
 	frametime += 1
 	#print(Interior.Current_Pilot, " ",self)
@@ -176,17 +177,20 @@ func _physics_process(delta: float) -> void:
 		linear_damp = 0.0
 		angular_damp = 0.0
 		#print(direction)
-		var rotation_torque : Vector3 = calculate_ship_rotation() 
+		var rotation_torque : Vector3
 		
 		calculate_g_force(delta)
-		apply_torque(basis* rotation_torque)
 		
-		calculate_ship_linear_velocity()
+		if piloted:
+			calculate_ship_linear_velocity()
+			rotation_torque = calculate_ship_rotation()
+			#print(rotation_torque)
 		if frametime % 3 == 0:
 			call_deferred("calculate_max_speed")
 			call_deferred("calculate_gravity_offset", delta)
 			call_deferred("calculate_atmospheric_density")
 		flight_mouse_depreciation(delta)
+		apply_torque(basis* rotation_torque)
 		#print("lift strength is at: ", clamp(linear_velocity.length()/max_lift_speed, 0, 1) * 100, "%")
 	else:
 		linear_damp = 0.05
@@ -226,21 +230,34 @@ func calculate_max_speed() -> void:
 	speed_limit = _max_regular_speed
 	
 ##Calculates "drag", as in how fast the ship will shed velocity. NOTE: this is not direction dependent.
-func calculate_drag() -> void:
-	##NOTE TODO: temporary
+func calculate_ship_drag() -> void:
+	if linear_velocity.length_squared() < 0.001:
+		return
+	
 	var temp := 293.15
 	var R := 8.31446261815324 / 0.0289652
 	var pressure := atmospheric_density * 101300.0
-	var local_linear := (basis.inverse() * linear_velocity)
 	var density := (pressure) / (temp * R)
-	#print(density)
-	var drag_direction : Vector3 = basis * (local_linear.normalized()) * atmospheric_drag_coefficients
-	var refrea : Vector3
-	for x : int in range(3):
-		refrea[x] = local_linear.normalized()[x] * atmospheric_reference_area[x]
-	var drag : Vector3 = -drag_direction * density * (linear_velocity.length() * linear_velocity.length())* 0.5 * 30
+	
+	# Transform velocity to local space
+	var local_velocity := basis.inverse() * linear_velocity
+	var local_direction := local_velocity.normalized()
+	
+	# Calculate effective reference area based on velocity direction
+	# Each axis contributes proportionally to how much you're moving in that direction
+	var effective_area : float = abs(local_direction.x) * atmospheric_reference_area.x + \
+						  abs(local_direction.y) * atmospheric_reference_area.y + \
+						  abs(local_direction.z) * atmospheric_reference_area.z
+	
+	# Calculate drag magnitude
+	var speed := local_velocity.length()
+	var drag_magnitude := 0.5 * density * speed * speed * effective_area
+	
+	# Apply drag opposing velocity (in global space)
+	var drag := -linear_velocity.normalized() * drag_magnitude
+	
 	apply_central_force(drag)
-	print("current drag is : ",basis.inverse() * drag)
+	#print("effective area: ", effective_area, " | drag: ", drag.length())
 	
 
 ##Calculates atmospheric density in atmospheres at any given moment.
@@ -544,7 +561,7 @@ func calculate_ship_rotation() -> Vector3:
 
 ##Calculates axial flight assist required to stop all transient rotations.
 func axial_flight_assist(axp: Vector3, axl : Vector3) -> Vector3:
-	if angular_velocity.length() == 0:
+	if angular_velocity.length() <= deg_to_rad(0.05):
 		return Vector3.ZERO
 	var corrected_angular := basis.inverse() * angular_velocity
 	var correction := Vector3.ZERO
@@ -626,17 +643,20 @@ func pilot_activation(is_disabling: bool) -> void:
 	reset_mouse()
 	#or just if is activating.
 	if !is_disabling:
+		var Pilot : Player_Default
+		if Interior.Current_Pilot:
+			Pilot = Interior.Current_Pilot
 		set_process_unhandled_input(true)
 		set_process_input(true)
 		#all pilot specific parameters are defined here.
-		current_prefered_non_mouse_axe = Interior.Current_Pilot.pilot_prefered_non_mouse_axe
-		current_mouse_deadzone = Interior.Current_Pilot.pilot_mouse_deadzone
-		current_max_mouse_distance = Interior.Current_Pilot.pilot_max_mouse_distance
-		current_flight_mouse_sensitivity = Interior.Current_Pilot.pilot_flight_mouse_sensitivity
-		current_is_relative_mouse = Interior.Current_Pilot.pilot_relative_flight_mouse
-		current_assist_throttle_increment = Interior.Current_Pilot.pilot_assist_throttle_increment
-		current_player_camera = Interior.Current_Pilot.Camera
-		print("activated rigidbody flight mode")
+		current_prefered_non_mouse_axe = Pilot.pilot_prefered_non_mouse_axe
+		current_mouse_deadzone = Pilot.pilot_mouse_deadzone
+		current_max_mouse_distance = Pilot.pilot_max_mouse_distance
+		current_flight_mouse_sensitivity = Pilot.pilot_flight_mouse_sensitivity
+		current_is_relative_mouse = Pilot.pilot_relative_flight_mouse
+		current_assist_throttle_increment = Pilot.pilot_assist_throttle_increment
+		current_player_camera = Pilot.Camera
+		print("initiated rigidbody flight mode")
 
 	if is_disabling:
 

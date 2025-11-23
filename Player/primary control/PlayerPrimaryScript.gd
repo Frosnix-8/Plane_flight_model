@@ -1,5 +1,5 @@
 extends CharacterBody3D
-
+class_name Player_Default
 signal fail_recalibrate
 #depracated: signal parent_call(is_depracated: bool, host: CharacterBody3D)
 ##Is the player in one of these states?
@@ -148,7 +148,7 @@ func _physics_process(delta: float) -> void:
 
 	current_frame_count += 1
 	if recalibrate:
-		reparent_recalibrate(delta)
+		_reparent_recalibrate(delta)
 	elif target_object:
 		global_rotation = target_object.global_rotation
 	
@@ -169,39 +169,19 @@ func _physics_process(delta: float) -> void:
 		GCheckRay.process_mode = Node.PROCESS_MODE_PAUSABLE
 		player_was_active = player_is_active
 	
-	#recalibration
-	
-	#reorient relative to "parent"
-	
-	
-	#local lateral movement
-	up_dir_calibrate()
+	_up_dir_calibrate()
 	if spacestate == spacestates.grounded and in_atmosphere:
-		grounded_movement(delta)
+		_grounded_movement(delta)
 	else:
-		atmos_movement(delta)
-	
-	#gravity and jumping
-	#if is_on_floor() and plat_jumped:
-		#plat_jumped = false
-	#jump
+		_atmos_movement(delta)
+
 	if Input.is_action_just_pressed("jump") and is_on_floor():
 		velocity += -current_gravity_dir * JUMP_VELOCITY
-		#if target_object:
-			#plat_jumped = true
-			#plat_relative_pos = target_object.to_local(position)
-	
+
 	if Input.is_action_pressed("crouch"):
 		height_adjust(true)
 	elif Input.is_action_just_released("crouch"):
 		height_adjust(false)
-	#depracated high-speed movement safety
-	#if target_object_parent:
-		#if ("linear_velocity" in target_object_parent):
-		#
-			#floor_snap_length = target_object_parent.linear_velocity.length() * 0.018 + 0.1
-			#pass
-	#off groun
 	
 	if is_on_floor():
 		current_time_airborne = 0
@@ -211,14 +191,6 @@ func _physics_process(delta: float) -> void:
 		current_time_airborne += 1
 		if target_object:
 			velocity += current_gravity_dir * current_gravity * delta * 1.5
-			##NOTE: depracated
-			#if plat_jumped:
-				#var _global_position := target_object.to_global(plat_relative_pos)
-				#var intmvmt := velocity * delta
-				#var new_global : Vector3 = _global_position + intmvmt
-				#plat_relative_pos = target_object.to_local(new_global)
-				#
-				#position = new_global
 		else:
 			velocity += get_gravity() * delta
 		if current_time_airborne > 120 and target_type != targetstates.ship:
@@ -230,16 +202,16 @@ func _physics_process(delta: float) -> void:
 	move_and_slide()
 	if PENDING_TARGET_OBJECT:
 		##THE SOLUTION HAS FINALLY BEEN IMPLEMENTED...
-		target_object_swap(PENDING_TARGET_OBJECT)
+		_target_object_swap(PENDING_TARGET_OBJECT)
 		PENDING_TARGET_OBJECT = null
 		recalibrate = true
 	elif target_type != targetstates.ship:
-		static_player_moving_world_adjust(pre_move_and_slide_position)
+		_static_player_moving_world_adjust(pre_move_and_slide_position)
 	apply_floor_snap()
 
 ##calibrates up_direction and 'current_gravity_dir' relative to 'target_object'. defaults if 'target_object' is null.
 ##TODO: maybe if I implement planets, perhaps include some more extra?
-func up_dir_calibrate() -> void:
+func _up_dir_calibrate() -> void:
 	
 	if target_object:
 		current_gravity_dir = -target_object.global_basis.y.normalized()
@@ -250,7 +222,7 @@ func up_dir_calibrate() -> void:
 		up_direction = Vector3.UP
 		
 ##Handles reparenting orientation
-func reparent_recalibrate(delta: float):
+func _reparent_recalibrate(delta: float):
 	#plat_jumped = false
 	recalibrate_progress = min(recalibrate_progress + delta, 0.5)
 	var eased_progress := recalibrate_progress * recalibrate_progress * (3.0 - 2.0 * recalibrate_progress)
@@ -274,7 +246,7 @@ func reparent_recalibrate(delta: float):
 		recalibrate_pivot_correction = true
 	
 ##handles (airborne TODO) and spaceborne movement
-func atmos_movement(delta: float):
+func _atmos_movement(delta: float):
 	var direction : Vector3
 	var input_dir := -Input.get_vector("back", "forward","left","right")
 	#note: directions reversed because it only works that way for some reason
@@ -288,7 +260,7 @@ func atmos_movement(delta: float):
 		velocity -= velocity * delta * 0.05
 	#$deb.position = lerp($deb.position,direction, 0.5)
 ##handles grounded and almost grounded movement
-func grounded_movement(delta: float) -> void:
+func _grounded_movement(delta: float) -> void:
 	var direction := Vector3.ZERO
 	var input_dir := Input.get_vector("back", "forward","right","left")
 	var _SPEED : float = SPEED *( Input.get_axis("crouch","sprint") * 0.5 + 1 )
@@ -334,7 +306,7 @@ func height_adjust(do_crouch: bool = true):
 		x.position.y = current_height / 2
 	#print("offsetting adjustables by ", current_height / 2)
 ##handles correcting movement for the "static player" game model
-func static_player_moving_world_adjust(delta: Vector3):
+func _static_player_moving_world_adjust(delta: Vector3):
 	world.position -= global_position - delta
 	#print("STMW: ",position - delta)
 	global_position = Vector3.ZERO
@@ -377,27 +349,27 @@ func _input(event: InputEvent) -> void:
 func _on_ray_cast_3d_parent_lost() -> void:
 		
 	if in_atmosphere:
-		target_object_swap(get_tree().root.get_child(0))
+		_target_object_swap(get_tree().root.get_child(0))
 		
 		#reparent(target_object, true)
 		recalibrate = true
 	else: 
-		target_object_swap(get_tree().root.get_child(0))
+		_target_object_swap(get_tree().root.get_child(0))
 
 		#reparent(target_object,true)
 	#print("lost parent, resetting...")
 ##verifies and reparents to arg1. Also handles target's parent.
 func _on_ray_cast_3d_reparent(guest: Node3D) -> void:
 	
-	if !GCheckRay.ground_check(-guest.global_basis.y.normalized(), guest):
-		fail_recalibrate.emit()
-		return
+	#if !GCheckRay.ground_check(-guest.global_basis.y.normalized(), guest):
+		#fail_recalibrate.emit()
+		#return
 	
 	PENDING_TARGET_OBJECT = guest
 	
 	#recalibrate = true
 ##Shrinks reparent raycasts when on a ship.
-func raycast_resize():
+func _raycast_resize():
 	if target_type == targetstates.ship:
 		for x: int in Reparent_casts.size():
 			Reparent_casts[x].target_position = reparent_casts_defs[x] / 2
@@ -405,7 +377,7 @@ func raycast_resize():
 		for x: int in Reparent_casts.size():
 			Reparent_casts[x].target_position = reparent_casts_defs[x]
 ##checks for ship compatibility when swapping target_object. requires arg1
-func target_object_swap(new_target: Node3D):
+func _target_object_swap(new_target: Node3D):
 	var _velocity : Vector3
 	#check if the new and old parent are related. If so, same ship.
 	if new_target.is_in_group("Ship"):
@@ -420,22 +392,22 @@ func target_object_swap(new_target: Node3D):
 	#deparent from ship
 	if target_object:
 		if target_type == targetstates.ship:
-			_velocity = target_object_ship_disembark()
+			_velocity = _target_object_ship_disembark()
 		else: 
 			call_deferred("get_ambience", true)
 	###
 	target_object = new_target
 	###
 	if target_object.is_in_group("Ship"):
-		target_object_ship_board()
+		_target_object_ship_board()
 	else:
-		target_object_misc_enter()
+		_target_object_misc_enter()
 	velocity += _velocity
 
 ##DON'T TOUCH IT
 ##DON'T EVEN THINK ABOUT CHANGING IT
 ##IT'S PERFECT JUST THE WAY IT IS
-func target_object_ship_disembark() -> Vector3:
+func _target_object_ship_disembark() -> Vector3:
 	print("initiating ship disembark...")
 	recalibrate_transition_frame = true
 	
@@ -467,7 +439,7 @@ func target_object_ship_disembark() -> Vector3:
 
 	return ship_velocity
 ##DO NOT TOUCH IT
-func target_object_ship_board() -> void:
+func _target_object_ship_board() -> void:
 	recalibrate_transition_frame = true
 
 	target_object_parent = target_object.The_Captain
@@ -481,17 +453,17 @@ func target_object_ship_board() -> void:
 	target_object_parent.call("child_call", self, true, world)
 	target_object.call("child_announcement", self, true)
 	call_deferred("get_ambience", false)
-	raycast_resize()
+	_raycast_resize()
 	#static_player_moving_world_adjust(Vector3.ZERO)
 	pass
 ##DO NOT TOUCH IT...
-func target_object_misc_enter() -> void:
+func _target_object_misc_enter() -> void:
 
 	target_type = targetstates.misc
 	target_object_parent = null
 	
 	call_deferred("get_ambience", false)
-	raycast_resize()
+	_raycast_resize()
 	
 	#static_player_moving_world_adjust(Vector3.ZERO)
 
@@ -510,7 +482,7 @@ func get_ambience(is_removing: bool = false):
 		for x : AudioStreamPlayer in [Audio_ambient_player_1, Audio_ambient_player_2]:
 			if x.stream == received_ambience:
 				#print("removed ambience.")
-				audio_fade_out(x)
+				_audio_fade_out(x)
 				continue
 			#print("did not find specified ambience in ", x.name)
 	else:
@@ -522,12 +494,12 @@ func get_ambience(is_removing: bool = false):
 				continue
 			#print("successfully assigned to: ", x.name)
 			x.stream = received_ambience
-			audio_fade_in(x,received_ambience_vol)
+			_audio_fade_in(x,received_ambience_vol)
 			break
 	#print("completed!")
 	return received_ambience
 ##Handles fading in audio.
-func audio_fade_in(Player: AudioStreamPlayer,ambience_vol:= 0.0, fade_duration:= 1.0):
+func _audio_fade_in(Player: AudioStreamPlayer,ambience_vol:= 0.0, fade_duration:= 1.0):
 	if Audio_Tweens.has(Player):
 		Audio_Tweens[Player].kill()
 	
@@ -539,7 +511,7 @@ func audio_fade_in(Player: AudioStreamPlayer,ambience_vol:= 0.0, fade_duration:=
 	tween.tween_property(Player, "volume_db", ambience_vol, fade_duration)
 	Audio_Tweens[Player] = tween
 ##Handles fading out audio.
-func audio_fade_out(Player: AudioStreamPlayer, fade_duration:= 3.0):
+func _audio_fade_out(Player: AudioStreamPlayer, fade_duration:= 3.0):
 	if Audio_Tweens.has(Player):
 		Audio_Tweens[Player].kill()
 	var tween :Tween= create_tween()
