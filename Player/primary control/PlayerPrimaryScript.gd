@@ -363,7 +363,6 @@ func _target_object_swap(new_target: Node3D):
 	#check if the new and old parent are related. If so, same ship.
 	if new_target.is_in_group("Ship"):
 		if new_target.The_Captain == target_object_parent:
-			print("new target is same ship!")
 			call_deferred("get_ambience", true)
 			target_object.call("child_announcement", self, false)
 			target_object = new_target
@@ -389,7 +388,6 @@ func _target_object_swap(new_target: Node3D):
 ##DON'T EVEN THINK ABOUT CHANGING IT
 ##IT'S PERFECT JUST THE WAY IT IS
 func _target_object_ship_disembark() -> Vector3:
-	print("initiating ship disembark...")
 	recalibrate_transition_frame = true
 	
 	var player_world_position := global_position

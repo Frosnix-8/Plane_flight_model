@@ -28,7 +28,7 @@ func _physics_process(_delta: float) -> void:
 		
 		if !has_line_of_sight(x):
 			print("cannot reach recalibrate location, aborting...")
-			return
+			continue
 		reparent.emit(x)
 		former_guest = x
 		break
