@@ -1,6 +1,5 @@
 extends CharacterBody3D
 class_name Player_Default
-signal fail_recalibrate
 #depracated: signal parent_call(is_depracated: bool, host: CharacterBody3D)
 ##Is the player in one of these states?
 enum spacestates {grounded, airborne, spaceborne}
@@ -18,12 +17,9 @@ const increments :Array = [1.0, 5.0,10.0,12.5, 33.34, 50.0, 100.0]
 ##Parent
 @onready var Parent := get_node("../")
 ##Reparent raycast nodes
-@onready var Reparent_casts : Array[RayCast3D] = [$horirotation/Primaray,$horirotation/Primaray/BackRay,$horirotation/Primaray/FrontRay,
-$horirotation/Primaray/LeftRay, $horirotation/Primaray/RightRay, $horirotation/Primaray/topray]
+@onready var Reparent_cast : Area3D = $horirotation/Reparent_cast
 ##Vector defined at runtime with all default reparent raycast target positions
-@onready var reparent_casts_defs : PackedVector3Array
-##GCheckRay checks if the player has ground "under" it relative to the new target object they are reparenting to. 
-@onready var GCheckRay := $horirotation/GCheckRay
+@onready var reparent_casts_defs : float = 1.5
 ##Meshpivot is the rotation axis for all mesh related nodes. Rotate this to rotate the entire player's mesh.
 @onready var Meshpivot := $Meshpivot
 ##Horizontal rotation for camera rotation
@@ -134,9 +130,7 @@ func _ready() -> void:
 	process_physics_priority = 0
 	Input.mouse_mode = (Input.MOUSE_MODE_CAPTURED)
 	
-	for x in range(6):
-		#default target vectors for reparent vectors.
-		reparent_casts_defs.append(Reparent_casts[x].target_position)
+
 	for x in [$Collision,$Meshpivot,$horirotation,$deb]:
 		height_adjustables.append(x)
 	height_adjust(false)
@@ -154,19 +148,13 @@ func _physics_process(delta: float) -> void:
 	
 	#disable player raycasts for performance when inactive
 	if !player_is_active:
-		for x in Reparent_casts:
-			x.enabled = false
-		Reparent_casts[0].process_mode = Node.PROCESS_MODE_DISABLED
-		GCheckRay.process_mode = Node.PROCESS_MODE_DISABLED
+		Reparent_cast.set_physics_process(false)
 		player_was_active = player_is_active
 		height_adjust(false)
 		return
 	#reactivate...
 	elif player_is_active and !player_was_active:
-		for x in Reparent_casts:
-			x.enabled = true
-		Reparent_casts[0].process_mode = Node.PROCESS_MODE_PAUSABLE
-		GCheckRay.process_mode = Node.PROCESS_MODE_PAUSABLE
+		Reparent_cast.set_physics_process(true)
 		player_was_active = player_is_active
 	
 	_up_dir_calibrate()
@@ -223,7 +211,6 @@ func _up_dir_calibrate() -> void:
 		
 ##Handles reparenting orientation
 func _reparent_recalibrate(delta: float):
-	#plat_jumped = false
 	recalibrate_progress = min(recalibrate_progress + delta, 0.5)
 	var eased_progress := recalibrate_progress * recalibrate_progress * (3.0 - 2.0 * recalibrate_progress)
 	##Variable exists because rotation will be affected during recalibration. this conserves the original angle.
@@ -346,36 +333,30 @@ func _input(event: InputEvent) -> void:
 		if player_is_pilot:
 			target_object_parent.call_deferred("reset_mouse")
 ##handles if the target_object is lost due to a time-out
-func _on_ray_cast_3d_parent_lost() -> void:
+func _on_reparent_fail() -> void:
+	if !player_is_active:
+		return
+	if current_atmospheric_density:
+		PENDING_TARGET_OBJECT = world
 		
-	if in_atmosphere:
-		_target_object_swap(get_tree().root.get_child(0))
-		
-		#reparent(target_object, true)
-		recalibrate = true
 	else: 
-		_target_object_swap(get_tree().root.get_child(0))
+		PENDING_TARGET_OBJECT = world
 
 		#reparent(target_object,true)
 	#print("lost parent, resetting...")
 ##verifies and reparents to arg1. Also handles target's parent.
-func _on_ray_cast_3d_reparent(guest: Node3D) -> void:
-	
-	#if !GCheckRay.ground_check(-guest.global_basis.y.normalized(), guest):
-		#fail_recalibrate.emit()
-		#return
-	
+func _on_reparent_order(guest: Node3D) -> void:
+	print("received ", guest.name)
 	PENDING_TARGET_OBJECT = guest
 	
 	#recalibrate = true
 ##Shrinks reparent raycasts when on a ship.
 func _raycast_resize():
+	$horirotation/Reparent_cast/Reparent_col.shape.radius = reparent_casts_defs
 	if target_type == targetstates.ship:
-		for x: int in Reparent_casts.size():
-			Reparent_casts[x].target_position = reparent_casts_defs[x] / 2
-	else:
-		for x: int in Reparent_casts.size():
-			Reparent_casts[x].target_position = reparent_casts_defs[x]
+		$horirotation/Reparent_cast/Reparent_col.shape.radius = 1.25
+
+		
 ##checks for ship compatibility when swapping target_object. requires arg1
 func _target_object_swap(new_target: Node3D):
 	var _velocity : Vector3

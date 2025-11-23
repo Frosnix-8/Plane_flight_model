@@ -209,7 +209,7 @@ func _integrate_forces(state: PhysicsDirectBodyState3D) -> void:
 	#for x : AnimatableBody3D in [Interior, Exterior]:
 		#x.transform = state.transform
 	#TODO: Implement atmospheric flight system.
-	
+
 
 	
 #TODO: add mouse based rotation
@@ -325,9 +325,9 @@ func calculate_atmospheric_lift_coefficient(aoa_degrees: float, slip_angle : flo
 	elif necessary_CL < critical_CL:
 		pitch_CL = lerp(stall, critical_CL, 
 		(necessary_CL - stall)/(critical_CL - stall))
-		print("semi stall")
+		#print("semi stall")
 	else:
-		print("STALL at ", lift_multiplier, "G ; aoa is ", aoa)
+		#print("STALL at ", lift_multiplier, "G ; aoa is ", aoa)
 		FLAG_stall = true
 		pitch_CL = critical_CL * 0.35
 	
@@ -403,7 +403,7 @@ func calculate_g_force(delta: float):
 	var G_limit_critical : float = lerp(max_G_absolute, max_atmospheric_G_absolute, s_atm)
 	var G_limit_instant : float = lerp(max_G_absolute, max_atmospheric_G_tolerance_instant, s_atm)
 	var G_limit : float = lerp(max_G_absolute, max_atmospheric_G_tolerance, s_atm)
-	print(snappedf(gvar, 0.1))
+	#print(snappedf(gvar, 0.1))
 	if gvar <= G_limit:
 		return
 	#
@@ -420,7 +420,6 @@ func calculate_g_force(delta: float):
 		return
 	#Exceeding safe G's without crash.
 	else:
-		
 		print("mechanical limit reached. failure imminent.")
 	
 
@@ -564,21 +563,21 @@ func axial_flight_assist(axp: Vector3, axl : Vector3) -> Vector3:
 	if angular_velocity.length() <= deg_to_rad(0.05):
 		return Vector3.ZERO
 	var corrected_angular := basis.inverse() * angular_velocity
+
 	var correction := Vector3.ZERO
-	
-	var high_speed_threshold := 0.005  # Above 50% max speed
+	print(corrected_angular)
+	var high_speed_threshold := 0.05  # Above 50% max speed
 		#TODO: add axial speed limits.
 	for x in range(3):
 		if corrected_angular[x] != 0:
 			var speed_ratio :float= abs(corrected_angular[x]) / axl[x]
-			#print(speed_ratio)
 			if speed_ratio > high_speed_threshold:
 				# High speed: full braking
 				correction[x] = -sign(corrected_angular[x]) * inertia[x] * axp[x]
 			else:
 				# Low speed: proportional reduction
 				correction[x] = -(corrected_angular[x]) * inertia[x] * axp[x]
-
+	
 	return correction
 
 ##Calculates linear flight assist variables to return to target movement speed while removing lateral velocity. NOTE: target speed not implemented.
