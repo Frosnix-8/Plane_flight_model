@@ -19,7 +19,7 @@ const increments :Array = [1.0, 5.0,10.0,12.5, 33.34, 50.0, 100.0]
 ##Reparent raycast nodes
 @onready var Reparent_cast : Area3D = $horirotation/Reparent_cast
 ##Vector defined at runtime with all default reparent raycast target positions
-@onready var reparent_casts_defs : float = 1.5
+@onready var reparent_casts_defs : float = 0.8
 ##Meshpivot is the rotation axis for all mesh related nodes. Rotate this to rotate the entire player's mesh.
 @onready var Meshpivot := $Meshpivot
 ##Horizontal rotation for camera rotation
@@ -71,6 +71,7 @@ var current_height := 1.7
 ##Apparently, the reparent logic needs to be done before move and slide. otherwise it can cause unnecessary teleporting. 
 ##This variant queues the target object before it can be swapped.
 var PENDING_TARGET_OBJECT : Node3D
+
 ##Target node that the player will rotate, experience gravity, move, and see relative to.
 ##If unaware, "reparent" is to reorient and stay relative to another "parent's" frame of reference. This is key to moving on a moving craft.
 var target_object: Node3D
@@ -189,6 +190,7 @@ func _physics_process(delta: float) -> void:
 
 	move_and_slide()
 	if PENDING_TARGET_OBJECT:
+		print("applying pending movement")
 		##THE SOLUTION HAS FINALLY BEEN IMPLEMENTED...
 		_target_object_swap(PENDING_TARGET_OBJECT)
 		PENDING_TARGET_OBJECT = null
@@ -314,10 +316,14 @@ func _unhandled_input(event: InputEvent) -> void:
 				Vertical_pivot.rotation.z = clamp(Vertical_pivot.rotation.z,-PI * 0.35, PI * 0.35)
 	if event is InputEventMouseButton and !is_in_context_menu:
 		Input.mouse_mode = Input.MOUSE_MODE_CAPTURED
+		get_tree().paused = false
 ##misc input
 func _input(event: InputEvent) -> void:
 	if event.is_action_pressed("ui_end"):
 		get_tree().quit()
+	elif event.is_action_pressed("ui_cancel"):
+		Input.mouse_mode = Input.MOUSE_MODE_VISIBLE
+		get_tree().paused = true
 		
 	if event.is_action_pressed("Context_Menu_Activate"):
 		Input.mouse_mode = Input.MOUSE_MODE_CONFINED
@@ -333,8 +339,10 @@ func _input(event: InputEvent) -> void:
 		if player_is_pilot:
 			target_object_parent.call_deferred("reset_mouse")
 ##handles if the target_object is lost due to a time-out
-func _on_reparent_fail() -> void:
-	if !player_is_active:
+func _on_scopekeep_timeout() -> void:
+	print("player timed out")
+	if !player_is_active or player_is_pilot:
+		print("not recalibrating")
 		return
 	if current_atmospheric_density:
 		PENDING_TARGET_OBJECT = world
@@ -346,7 +354,7 @@ func _on_reparent_fail() -> void:
 	#print("lost parent, resetting...")
 ##verifies and reparents to arg1. Also handles target's parent.
 func _on_reparent_order(guest: Node3D) -> void:
-	print("received ", guest.name)
+	print("REPARNEING TO ", guest.name)
 	PENDING_TARGET_OBJECT = guest
 	
 	#recalibrate = true
@@ -354,12 +362,14 @@ func _on_reparent_order(guest: Node3D) -> void:
 func _raycast_resize():
 	$horirotation/Reparent_cast/Reparent_col.shape.radius = reparent_casts_defs
 	if target_type == targetstates.ship:
-		$horirotation/Reparent_cast/Reparent_col.shape.radius = 1.25
+		$horirotation/Reparent_cast/Reparent_col.shape.radius = 0.5
 
 		
 ##checks for ship compatibility when swapping target_object. requires arg1
 func _target_object_swap(new_target: Node3D):
 	var _velocity : Vector3
+	
+	
 	#check if the new and old parent are related. If so, same ship.
 	if new_target.is_in_group("Ship"):
 		if new_target.The_Captain == target_object_parent:
@@ -372,6 +382,7 @@ func _target_object_swap(new_target: Node3D):
 	#deparent from ship
 	if target_object:
 		if target_type == targetstates.ship:
+			print("disembark")
 			_velocity = _target_object_ship_disembark()
 		else: 
 			call_deferred("get_ambience", true)
@@ -380,8 +391,10 @@ func _target_object_swap(new_target: Node3D):
 	###
 	if target_object.is_in_group("Ship"):
 		_target_object_ship_board()
+		print("boarding ship")
 	else:
 		_target_object_misc_enter()
+		print("entering misc")
 	velocity += _velocity
 
 ##DON'T TOUCH IT
@@ -404,7 +417,7 @@ func _target_object_ship_disembark() -> Vector3:
 	target_type = targetstates.none
 	target_object_parent = null
 	
-	print(world.global_position)
+	#print(world.global_position)
 	#Claude told me to not use my function. maybe it's a bit different here?
 	#Ah yes. static_player_moving_world_compensation uses the actual global position,
 	#This does not. it uses the previous position.
@@ -444,7 +457,7 @@ func _target_object_misc_enter() -> void:
 	call_deferred("get_ambience", false)
 	_raycast_resize()
 	
-	#static_player_moving_world_adjust(Vector3.ZERO)
+	#_static_player_moving_world_adjust(Vector3.ZERO)
 
 ##retrieves the target object's ambience for immersion reasons.\n
 ##TODO: add tweening to volume

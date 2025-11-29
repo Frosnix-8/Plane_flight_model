@@ -65,15 +65,8 @@ shadow_enabled = true
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 2.047346, 2.7216125, -0.05445862)
 skeleton = NodePath("../..")
 
-[node name="main ship" parent="environment" instance=ExtResource("4_1bvp3")]
-transform = Transform3D(1, 0, 0, 0, 1.0000001, 0, 0, 0, 1.0000002, -0.91760445, 2.4604883, -16.460808)
-
-[node name="ship" parent="environment/main ship" index="0"]
-max_degree_atmospheric_axial_speed = Vector3(200, 50, 90)
-max_atmospheric_regular_speed = 300.0
-max_atmospheric_speed = 450.0
-
 [node name="MeshInstance3D3" parent="environment" instance=ExtResource("5_lquwl")]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 5, 2.5002115, -1)
 
-[editable path="environment/main ship"]
+[node name="Shipnode" parent="environment" instance=ExtResource("4_1bvp3")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -5.9604645e-08, 3.283332, -8.813376)

@@ -1,4 +1,4 @@
-[gd_scene load_steps=57 format=4 uid="uid://bv6fn3vfi4bqt"]
+[gd_scene load_steps=58 format=4 uid="uid://bv6fn3vfi4bqt"]
 
 [ext_resource type="Script" uid="uid://p4qrm0q582qa" path="res://ship/ShipSingleton.gd" id="1_to8rf"]
 [ext_resource type="Script" uid="uid://ctpx1d2dpkybc" path="res://ship/flight_physics/default ship.gd" id="2_hgqia"]
@@ -6,6 +6,7 @@
 [ext_resource type="Script" uid="uid://dgiv21ntmdma8" path="res://ship/Player_environment/Interior.gd" id="4_1m8ng"]
 [ext_resource type="Script" uid="uid://b8ancvgr3wxo8" path="res://ship/Player_environment/Exterior.gd" id="5_0hxcy"]
 [ext_resource type="Material" uid="uid://xmjo2mp2pv3t" path="res://debugmat.tres" id="5_hgqia"]
+[ext_resource type="AudioStream" uid="uid://csx1dfej20yr2" path="res://ship/Audio/space ambience 3.ogg" id="5_xijwm"]
 [ext_resource type="Material" uid="uid://q0j0rwrbioc4" path="res://Highlight_shader/Variable_outliner.tres" id="7_wt06s"]
 [ext_resource type="AudioStream" uid="uid://c4xguguraspx6" path="res://misc sounds/small_click.wav" id="8_4dj8j"]
 [ext_resource type="Script" uid="uid://cdflj4vqpdpnk" path="res://ship/Player_environment/ship pilot activation.gd" id="8_vslag"]
@@ -317,19 +318,19 @@ random_pitch = 1.3
 streams_count = 1
 stream_0/stream = ExtResource("8_4dj8j")
 
-[sub_resource type="ViewportTexture" id="ViewportTexture_bev6k"]
+[sub_resource type="ViewportTexture" id="ViewportTexture_xijwm"]
 viewport_path = NodePath("UI_viewport")
 
-[sub_resource type="StandardMaterial3D" id="StandardMaterial3D_xijwm"]
+[sub_resource type="StandardMaterial3D" id="StandardMaterial3D_c5vmd"]
 resource_local_to_scene = true
 albedo_color = Color(0, 0, 0, 1)
 roughness = 0.0
 emission_enabled = true
-emission_texture = SubResource("ViewportTexture_bev6k")
+emission_texture = SubResource("ViewportTexture_xijwm")
 
 [sub_resource type="QuadMesh" id="QuadMesh_c5vmd"]
 resource_local_to_scene = true
-material = SubResource("StandardMaterial3D_xijwm")
+material = SubResource("StandardMaterial3D_c5vmd")
 size = Vector2(1.6, 1)
 
 [sub_resource type="ViewportTexture" id="ViewportTexture_tsk1t"]
@@ -366,6 +367,7 @@ top_Bottom_speed_multiplier = Vector2(1.3, 1.3)
 left_Right_speed_multiplier = Vector2(1, 1)
 atmospheric_axial_strength = Vector3(8, 2, 4)
 max_degree_axial_speed = Vector3(200, 50, 90)
+max_degree_atmospheric_axial_speed = Vector3(200, 70, 100)
 max_atmospheric_regular_speed = 500.0
 max_atmospheric_speed = 900.0
 max_lift_speed = 60.0
@@ -433,6 +435,7 @@ autoplay = true
 collision_layer = 3
 input_ray_pickable = false
 script = ExtResource("5_0hxcy")
+ambience = ExtResource("5_xijwm")
 
 [node name="CharacterColiision7" type="CollisionShape3D" parent="exterior"]
 shape = SubResource("ConcavePolygonShape3D_2pbvc")
@@ -463,6 +466,7 @@ shape = SubResource("ConvexPolygonShape3D_wt06s")
 collision_layer = 3
 input_ray_pickable = false
 script = ExtResource("4_1m8ng")
+ambience = ExtResource("5_xijwm")
 
 [node name="InternalCollision2" type="CollisionShape3D" parent="interior"]
 shape = SubResource("ConcavePolygonShape3D_gfk5c")

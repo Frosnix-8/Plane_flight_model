@@ -27,9 +27,9 @@ var previous_pos : Vector3
 var previous_rot : Basis
 
 ##Ambience retrieved by player when they reparent to this region.
-var ambience := load("res://ship/Audio/space ambience 3.ogg")
+@export var ambience :AudioStreamOggVorbis
 ##Ambience volume retrieved by player when reparenting to this node.
-var ambience_vol := 10
+@export var ambience_vol : float = 10
 
 func _ready() -> void:
 	previous_pos = The_Captain.global_position

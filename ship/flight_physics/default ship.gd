@@ -26,7 +26,7 @@ var xyz_multiplier_length_array : Array
 ##max axial speed in radians.
 @onready var max_axial_speed : Vector3
 ##Unlike max axial speed in voids, the actual limit varies on speed. NOTE: Currently implementing drag.
-@export var max_degree_atmospheric_axial_speed := Vector3.ZERO
+@export var max_degree_atmospheric_axial_speed := Vector3(90,100,50)
 ##atmospheric axial speed limit in radians.
 var max_atmospheric_axial_speed :Vector3
 
@@ -160,8 +160,11 @@ func _ready() -> void:
 		max_atmospheric_axial_speed[x] = deg_to_rad(max_degree_atmospheric_axial_speed[x])
 	for x : Vector2 in [forward_Backward_speed_multiplier, top_Bottom_speed_multiplier, left_Right_speed_multiplier]:
 		xyz_multiplier_length_array.append(x.length())
+		
+	
 
 func _physics_process(delta: float) -> void:
+
 	if !got_inertia:
 		call_deferred("calculate_ship_inertia")
 	#print("velocity ", linear_velocity.length())
@@ -180,7 +183,7 @@ func _physics_process(delta: float) -> void:
 		var rotation_torque : Vector3
 		
 		calculate_g_force(delta)
-		
+
 		if piloted:
 			calculate_ship_linear_velocity()
 			rotation_torque = calculate_ship_rotation()
@@ -510,7 +513,7 @@ func calculate_ship_rotation() -> Vector3:
 	var axp : Vector3 = lerp(axial_strength, atmospheric_axial_strength, clamp(atmospheric_density * (linear_velocity.length()/100.0 + 0.1),0,1))
 	
 	var axial_speed_limit : Vector3 = lerp(max_axial_speed, max_atmospheric_axial_speed, atmospheric_density)
-
+	
 	#print(axial_speed_limit)
 	#print(normalized_mouse_position.length())
 	#keyboard and mouse are not separate because they complement each other. the non-mouse axis requires keyboard input.
@@ -529,7 +532,7 @@ func calculate_ship_rotation() -> Vector3:
 	
 	target_rotation = clamp(target_rotation + Input.get_vector("pitch up", "pitch down", "yaw left", "yaw right"), -Vector2.ONE, Vector2.ONE)
 	rolltation = clamp(rolltation + Input.get_axis("roll left","roll right"), -1.0, 1.0)
-
+	
 	if !flight_assist_enabled:
 		
 		# Apply torque directly (rotational force)
@@ -539,23 +542,30 @@ func calculate_ship_rotation() -> Vector3:
 			target_rotation.x * inertia.z * axp.z *int(abs(corrected_angular.z) < axial_speed_limit.z or sign(corrected_angular.z) != sign(target_rotation.x))
 			)
 	else:
+
 		var rot_input : Array = [rolltation, -target_rotation.y, target_rotation.x]
+
 		for x:int in range(3):
 			#opposite direction compensation.
 			if rot_input[x] != 0 and sign(corrected_angular[x]) != sign(rot_input[x]):
+			
 				torque[x] = -sign(corrected_angular[x]) * inertia[x]
 			#same direction at specific speed.
-			if abs(corrected_angular[x]) < axial_speed_limit[x] * abs(rot_input[x]):
+			elif abs(corrected_angular[x]) < axial_speed_limit[x] * abs(rot_input[x]):
+			
 				torque[x] = rot_input[x] * inertia[x] * axp[x]
-			#nothing.
+			#nothing
 			else:
+
 				torque[x] = 0.0
-		#now this is the issue. NOTE: Solved for now.
+
+			
 		var axial_assist := axial_flight_assist(axp, axial_speed_limit)
 
 		for x in range(3):
 			if torque[x] == 0:
 				torque[x] = axial_assist[x]
+
 	return torque
 
 ##Calculates axial flight assist required to stop all transient rotations.
@@ -563,9 +573,9 @@ func axial_flight_assist(axp: Vector3, axl : Vector3) -> Vector3:
 	if angular_velocity.length() <= deg_to_rad(0.05):
 		return Vector3.ZERO
 	var corrected_angular := basis.inverse() * angular_velocity
-
+	
 	var correction := Vector3.ZERO
-	print(corrected_angular)
+	#print("c ; " , corrected_angular)
 	var high_speed_threshold := 0.05  # Above 50% max speed
 		#TODO: add axial speed limits.
 	for x in range(3):

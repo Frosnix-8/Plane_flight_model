@@ -5,8 +5,9 @@ extends AnimatableBody3D
 @onready var The_Captain: RigidBody3D = get_node("../ship")
 var is_disabled := false
 ##NOTE: Each part of a ship will have this ambience variant. 
-var ambience := load("res://ship/Audio/space ambience 3.ogg")
-var ambience_vol := 3
+@export_category("audio and ambience")
+@export var ambience :AudioStreamOggVorbis
+@export var ambience_vol : float = 3
 
 var previous_pos : Vector3
 var previous_rot : Basis

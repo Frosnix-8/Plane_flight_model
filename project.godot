@@ -15,11 +15,6 @@ run/main_scene="uid://wgsuytc6u8v6"
 config/features=PackedStringArray("4.5", "Forward Plus")
 config/icon="res://icon.svg"
 
-[audio]
-
-driver/output_latency=10
-driver/mix_rate=48000
-
 [display]
 
 window/size/viewport_width=2400
