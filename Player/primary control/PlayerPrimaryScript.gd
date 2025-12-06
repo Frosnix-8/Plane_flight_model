@@ -17,7 +17,7 @@ const increments :Array = [1.0, 5.0,10.0,12.5, 33.34, 50.0, 100.0]
 ##Parent
 @onready var Parent := get_node("../")
 ##Reparent raycast nodes
-@onready var Reparent_cast : Area3D = $horirotation/Reparent_cast
+@onready var Reparent_cast : Node3D = $horirotation/Reparent_casts
 ##Vector defined at runtime with all default reparent raycast target positions
 @onready var reparent_casts_defs : float = 0.8
 ##Meshpivot is the rotation axis for all mesh related nodes. Rotate this to rotate the entire player's mesh.
@@ -140,7 +140,7 @@ func _ready() -> void:
 
 ##I think you know what this is
 func _physics_process(delta: float) -> void:
-
+	print(global_position)
 	current_frame_count += 1
 	if recalibrate:
 		_reparent_recalibrate(delta)
@@ -190,7 +190,7 @@ func _physics_process(delta: float) -> void:
 
 	move_and_slide()
 	if PENDING_TARGET_OBJECT:
-		print("applying pending movement")
+		#print("applying pending movement")
 		##THE SOLUTION HAS FINALLY BEEN IMPLEMENTED...
 		_target_object_swap(PENDING_TARGET_OBJECT)
 		PENDING_TARGET_OBJECT = null
@@ -373,6 +373,7 @@ func _target_object_swap(new_target: Node3D):
 	#check if the new and old parent are related. If so, same ship.
 	if new_target.is_in_group("Ship"):
 		if new_target.The_Captain == target_object_parent:
+			print("target is in same family!")
 			call_deferred("get_ambience", true)
 			target_object.call("child_announcement", self, false)
 			target_object = new_target
@@ -445,7 +446,7 @@ func _target_object_ship_board() -> void:
 	target_object_parent.call("child_call", self, true, world)
 	target_object.call("child_announcement", self, true)
 	call_deferred("get_ambience", false)
-	_raycast_resize()
+	#_raycast_resize()
 	#static_player_moving_world_adjust(Vector3.ZERO)
 	pass
 ##DO NOT TOUCH IT...
@@ -455,7 +456,7 @@ func _target_object_misc_enter() -> void:
 	target_object_parent = null
 	
 	call_deferred("get_ambience", false)
-	_raycast_resize()
+	#_raycast_resize()
 	
 	#_static_player_moving_world_adjust(Vector3.ZERO)
 
@@ -515,7 +516,7 @@ func _audio_fade_out(Player: AudioStreamPlayer, fade_duration:= 3.0):
 	tween.tween_callback(func():
 		Player.stop()
 		Player.stream = null
-		print("completed")
+		#print("completed")
 		)
 ##Handles fading in and out of context mode
 func Context_shader_toggle():

@@ -1,9 +1,9 @@
 [gd_scene load_steps=11 format=3 uid="uid://b2gej66e63mk4"]
 
 [ext_resource type="Script" uid="uid://crobohh3y2xxx" path="res://Player/primary control/PlayerPrimaryScript.gd" id="1_4flbx"]
+[ext_resource type="Script" uid="uid://ct0w1i67opq77" path="res://Player/reparenting/reparent_casts.gd" id="3_hqtel"]
 [ext_resource type="Material" uid="uid://xmjo2mp2pv3t" path="res://debugmat.tres" id="4_hqtel"]
 [ext_resource type="Script" uid="uid://bxmkx64ervm5w" path="res://Player/primary control/playercam.gd" id="5_fhl08"]
-[ext_resource type="Script" uid="uid://vrigcn0bjvf2" path="res://Player/reparent_sphere.gd" id="6_1jxqw"]
 
 [sub_resource type="CapsuleShape3D" id="CapsuleShape3D_i3pqv"]
 radius = 0.4
@@ -16,13 +16,12 @@ material = SubResource("StandardMaterial3D_vtle1")
 radius = 0.4
 height = 1.7
 
-[sub_resource type="SphereShape3D" id="SphereShape3D_hqtel"]
-margin = 0.185
-radius = 0.35
+[sub_resource type="SphereShape3D" id="SphereShape3D_i3pqv"]
+radius = 0.4
 
 [sub_resource type="CapsuleShape3D" id="CapsuleShape3D_hqtel"]
-radius = 0.8
-height = 3.0
+radius = 0.4
+height = 1.8
 
 [sub_resource type="BoxMesh" id="BoxMesh_i3pqv"]
 material = ExtResource("4_hqtel")
@@ -46,26 +45,6 @@ skeleton = NodePath("../..")
 
 [node name="horirotation" type="Node3D" parent="."]
 
-[node name="GCheck" type="ShapeCast3D" parent="horirotation"]
-shape = SubResource("SphereShape3D_hqtel")
-target_position = Vector3(0, -1.525, 0)
-max_results = 5
-collision_mask = 2
-
-[node name="Reparent_cast" type="Area3D" parent="horirotation"]
-collision_layer = 0
-collision_mask = 2
-input_ray_pickable = false
-monitorable = false
-script = ExtResource("6_1jxqw")
-
-[node name="Reparent_col" type="CollisionShape3D" parent="horirotation/Reparent_cast"]
-shape = SubResource("CapsuleShape3D_hqtel")
-
-[node name="Scopekeep" type="Timer" parent="horirotation/Reparent_cast"]
-wait_time = 1.2999999999999998
-one_shot = true
-
 [node name="vertication" type="Node3D" parent="horirotation"]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 3.0376017e-05, 0.37235796, 0)
 
@@ -73,6 +52,48 @@ transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 3.0376017e-05, 0.37235796, 0)
 transform = Transform3D(-4.371139e-08, 0, -1, 0, 1, 0, 1, 0, -4.371139e-08, 0.25433365, 0.4271003, 2.3841858e-07)
 current = true
 script = ExtResource("5_fhl08")
+
+[node name="Reparent_casts" type="Node3D" parent="horirotation"]
+script = ExtResource("3_hqtel")
+
+[node name="Verticast" type="ShapeCast3D" parent="horirotation/Reparent_casts"]
+shape = SubResource("SphereShape3D_i3pqv")
+target_position = Vector3(0, -1.3, 0)
+max_results = 5
+collision_mask = 2
+
+[node name="Verticast2" type="ShapeCast3D" parent="horirotation/Reparent_casts"]
+shape = SubResource("SphereShape3D_i3pqv")
+target_position = Vector3(0, 1.3, 0)
+max_results = 5
+collision_mask = 2
+
+[node name="GCheck" type="RayCast3D" parent="horirotation/Reparent_casts"]
+collision_mask = 2
+
+[node name="Horicast3" type="ShapeCast3D" parent="horirotation/Reparent_casts"]
+shape = SubResource("CapsuleShape3D_hqtel")
+target_position = Vector3(1, 0, 0)
+max_results = 5
+collision_mask = 2
+
+[node name="Horicast4" type="ShapeCast3D" parent="horirotation/Reparent_casts"]
+shape = SubResource("CapsuleShape3D_hqtel")
+target_position = Vector3(-1, 0, 0)
+max_results = 5
+collision_mask = 2
+
+[node name="Horicast5" type="ShapeCast3D" parent="horirotation/Reparent_casts"]
+shape = SubResource("CapsuleShape3D_hqtel")
+target_position = Vector3(0, 0, 1)
+max_results = 5
+collision_mask = 2
+
+[node name="Horicast6" type="ShapeCast3D" parent="horirotation/Reparent_casts"]
+shape = SubResource("CapsuleShape3D_hqtel")
+target_position = Vector3(0, 0, -1)
+max_results = 5
+collision_mask = 2
 
 [node name="deb" type="MeshInstance3D" parent="."]
 visible = false
@@ -87,5 +108,9 @@ process_callback = 0
 wait_time = 0.2
 one_shot = true
 
-[connection signal="reparent" from="horirotation/Reparent_cast" to="." method="_on_reparent_order"]
-[connection signal="timeout" from="horirotation/Reparent_cast/Scopekeep" to="." method="_on_scopekeep_timeout"]
+[node name="Scopekeep" type="Timer" parent="."]
+wait_time = 1.2999999999999998
+one_shot = true
+
+[connection signal="reparent" from="horirotation/Reparent_casts" to="." method="_on_reparent_order"]
+[connection signal="timeout" from="Scopekeep" to="." method="_on_scopekeep_timeout"]
